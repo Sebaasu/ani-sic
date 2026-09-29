@@ -119,6 +119,61 @@
       border-color: var(--c-blue);
     }
 
+    /* Dropdown Menú compacto para PDFs */
+    .dropdown {
+      position: relative;
+      display: inline-block;
+    }
+    .dropdown-btn {
+      background: var(--bg-subpanel);
+      border: 1px solid var(--border-base);
+      color: var(--text-muted);
+      font-family: var(--font-sans);
+      font-size: 0.78rem;
+      font-weight: 600;
+      padding: 5px 10px;
+      border-radius: 6px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      transition: all 0.15s ease;
+    }
+    .dropdown-btn:hover {
+      color: var(--text-white);
+      border-color: var(--border-light);
+      background: var(--bg-card);
+    }
+    .dropdown-content {
+      display: none;
+      position: absolute;
+      right: 0;
+      top: calc(100% + 5px);
+      background: var(--bg-card);
+      min-width: 170px;
+      border: 1px solid var(--border-light);
+      border-radius: 6px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+      z-index: 100;
+      overflow: hidden;
+    }
+    .dropdown-content a {
+      color: var(--text-main);
+      padding: 8px 12px;
+      text-decoration: none;
+      display: block;
+      font-size: 0.8rem;
+      font-family: var(--font-sans);
+      transition: all 0.15s ease;
+    }
+    .dropdown-content a:hover {
+      background: rgba(88, 196, 221, 0.15);
+      color: var(--c-blue);
+    }
+    .dropdown:hover .dropdown-content {
+      display: block;
+    }
+
     /* Reproducción y Pasos */
     .playback-group {
       display: flex;
@@ -549,12 +604,17 @@
       <button class="btn-inst" data-inst="JMS">JMS 1100</button>
     </div>
 
-    <!-- Enlaces a Documentación PDF -->
-    <div class="selector-group" style="margin-left: 4px;">
-      <span class="selector-lbl">PDFs:</span>
-      <a href="docs/FD_DirDirecto.pdf" target="_blank" class="btn-inst" style="text-decoration: none;" title="Diagrama de flujo del direccionamiento directo">📄 Dir. Directo</a>
-      <a href="docs/FD_DirCompleto.pdf" target="_blank" class="btn-inst" style="text-decoration: none;" title="Diagrama con direccionamiento directo, indirecto e indexado">📄 Dir. Completo</a>
-      <a href="docs/FD_47Pasos.pdf" target="_blank" class="btn-inst" style="text-decoration: none;" title="Diagrama completo de los 47 pasos AHPL">📄 47 Pasos</a>
+    <!-- Menú Desplegable Compacto de PDFs -->
+    <div class="dropdown">
+      <button class="dropdown-btn" title="Ver diagramas de flujo en PDF">
+        <span>📄 Diagramas PDF</span>
+        <span style="font-size: 0.65rem; opacity: 0.7;">▼</span>
+      </button>
+      <div class="dropdown-content">
+        <a href="docs/FD_DirDirecto.pdf" target="_blank">📄 Dir. Directo</a>
+        <a href="docs/FD_DirCompleto.pdf" target="_blank">📄 Dir. Completo</a>
+        <a href="docs/FD_47Pasos.pdf" target="_blank">📄 47 Pasos AHPL</a>
+      </div>
     </div>
 
     <!-- Botones de Control de Navegación -->
