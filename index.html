@@ -1,0 +1,1792 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SIC 18-Bits | Datapath & Control AHPL por Etapas</title>
+  <style>
+    /* ==========================================================================
+       3Blue1Brown (3b1b) Minimal Dark Design System
+       ========================================================================== */
+    :root {
+      --bg-canvas: #0c0d11;
+      --bg-panel: #13141c;
+      --bg-subpanel: #1a1b26;
+      --bg-card: #212332;
+      
+      --border-base: #27293a;
+      --border-light: #3a3d54;
+
+      /* 3b1b Signature Colors */
+      --c-blue: #58c4dd;       /* Principal Math Cyan/Blue (Lectura / Fuente) */
+      --c-yellow: #f4d03f;     /* Highlighting & Active Step / Destino */
+      --c-green: #2ecc71;      /* Memory write / Result */
+      --c-purple: #9b59b6;     /* Secondary */
+      --c-orange: #e67e22;     /* Branch / Condition */
+      --c-red: #e74c3c;        /* Halt */
+      
+      --text-white: #f8fafc;
+      --text-main: #cbd5e1;
+      --text-muted: #787f99;
+      --text-dim: #4e536b;
+
+      --font-mono: 'JetBrains Mono', 'Fira Code', 'Roboto Mono', monospace;
+      --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: var(--font-sans);
+      background-color: var(--bg-canvas);
+      color: var(--text-main);
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      overflow: hidden;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* TOP BAR / CONTROLS */
+    header {
+      background: var(--bg-panel);
+      border-bottom: 1px solid var(--border-base);
+      padding: 9px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      flex-shrink: 0;
+    }
+
+    .brand-title {
+      font-weight: 700;
+      font-size: 1.05rem;
+      letter-spacing: -0.02em;
+      color: var(--text-white);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .brand-badge {
+      background: rgba(88, 196, 221, 0.12);
+      color: var(--c-blue);
+      border: 1px solid rgba(88, 196, 221, 0.35);
+      font-size: 0.72rem;
+      font-weight: 600;
+      padding: 2px 7px;
+      border-radius: 4px;
+      letter-spacing: 0.04em;
+    }
+
+    /* Selector de Instrucciones Directas */
+    .selector-group {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      background: var(--bg-subpanel);
+      padding: 3px 5px;
+      border-radius: 7px;
+      border: 1px solid var(--border-base);
+    }
+    .selector-lbl {
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      padding: 0 6px;
+      letter-spacing: 0.05em;
+    }
+    .btn-inst {
+      background: transparent;
+      border: 1px solid transparent;
+      color: var(--text-muted);
+      font-family: var(--font-mono);
+      font-size: 0.78rem;
+      font-weight: 600;
+      padding: 4px 8px;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .btn-inst:hover {
+      color: var(--text-white);
+      background: rgba(255,255,255,0.05);
+    }
+    .btn-inst.active {
+      background: rgba(88, 196, 221, 0.15);
+      color: var(--c-blue);
+      border-color: var(--c-blue);
+    }
+
+    /* Reproducción y Pasos */
+    .playback-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .btn-ctrl {
+      background: var(--bg-subpanel);
+      border: 1px solid var(--border-base);
+      color: var(--text-white);
+      font-family: var(--font-sans);
+      font-size: 0.8rem;
+      font-weight: 500;
+      padding: 6px 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.15s ease;
+    }
+    .btn-ctrl:hover:not(:disabled) {
+      background: var(--bg-card);
+      border-color: var(--border-light);
+    }
+    .btn-ctrl.btn-primary {
+      background: rgba(88, 196, 221, 0.15);
+      border-color: var(--c-blue);
+      color: var(--c-blue);
+      font-weight: 600;
+    }
+    .btn-ctrl.btn-primary:hover:not(:disabled) {
+      background: rgba(88, 196, 221, 0.28);
+    }
+    .btn-ctrl:disabled {
+      opacity: 0.35;
+      cursor: not-allowed;
+    }
+
+    /* MAIN CONTAINER: 2 Columnas */
+    main {
+      flex: 1;
+      display: grid;
+      grid-template-columns: 1fr 380px;
+      gap: 16px;
+      padding: 14px 20px;
+      overflow: hidden;
+      min-height: 0;
+    }
+
+    /* CANVAS DEL DATAPATH */
+    .datapath-container {
+      background: var(--bg-panel);
+      border: 1px solid var(--border-base);
+      border-radius: 10px;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* Banner flotante superior en el canvas con el Paso AHPL */
+    .step-banner {
+      position: absolute;
+      top: 12px;
+      left: 16px;
+      right: 16px;
+      z-index: 10;
+      background: rgba(26, 27, 38, 0.94);
+      backdrop-filter: blur(8px);
+      border: 1px solid var(--border-light);
+      border-left: 4px solid var(--c-yellow);
+      border-radius: 8px;
+      padding: 10px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.45);
+    }
+    .step-banner-left {
+      display: flex;
+      align-items: baseline;
+      gap: 12px;
+    }
+    .step-num-badge {
+      font-family: var(--font-mono);
+      font-size: 0.9rem;
+      font-weight: 700;
+      color: var(--c-yellow);
+      letter-spacing: 0.05em;
+    }
+    .step-name {
+      font-size: 0.92rem;
+      font-weight: 600;
+      color: var(--text-white);
+    }
+    .step-rtl-formula {
+      font-family: var(--font-mono);
+      font-size: 0.88rem;
+      font-weight: 600;
+      color: var(--c-blue);
+      background: rgba(88, 196, 221, 0.08);
+      padding: 2px 8px;
+      border-radius: 4px;
+      border: 1px solid rgba(88, 196, 221, 0.2);
+    }
+    .step-progress-counter {
+      font-family: var(--font-mono);
+      font-size: 0.78rem;
+      color: var(--text-muted);
+    }
+
+    .svg-wrapper {
+      flex: 1;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding-top: 48px;
+    }
+
+    svg#datapath-svg {
+      width: 100%;
+      height: 100%;
+      max-height: 100%;
+    }
+
+    /* RIGHT SIDEBAR */
+    .sidebar {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      overflow-y: auto;
+      min-height: 0;
+    }
+
+    .card {
+      background: var(--bg-panel);
+      border: 1px solid var(--border-base);
+      border-radius: 10px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .card-title {
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    /* Pizarra Didáctica */
+    .explanation-text {
+      font-size: 0.9rem;
+      line-height: 1.55;
+      color: var(--text-main);
+    }
+    .explanation-text strong {
+      color: var(--c-yellow);
+    }
+    .explanation-text em {
+      color: var(--c-blue);
+      font-style: normal;
+    }
+
+    .transition-box {
+      background: var(--bg-subpanel);
+      border: 1px solid var(--border-base);
+      border-radius: 6px;
+      padding: 10px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .transition-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 0.82rem;
+    }
+    .transition-row .lbl {
+      color: var(--text-muted);
+    }
+    .transition-row .val {
+      font-family: var(--font-mono);
+      font-weight: 600;
+      color: var(--c-blue);
+    }
+    .transition-row .next-step-badge {
+      font-family: var(--font-mono);
+      font-weight: 700;
+      color: var(--c-yellow);
+      background: rgba(244, 208, 63, 0.12);
+      border: 1px solid rgba(244, 208, 63, 0.3);
+      padding: 1px 7px;
+      border-radius: 4px;
+    }
+
+    /* Barra secuencial de pasos AHPL */
+    .sequence-tracker {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      flex: 1;
+      overflow-y: auto;
+      padding-right: 4px;
+    }
+    .seq-item {
+      background: var(--bg-subpanel);
+      border: 1px solid var(--border-base);
+      border-radius: 6px;
+      padding: 8px 10px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 0.8rem;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .seq-item:hover {
+      border-color: var(--border-light);
+    }
+    .seq-item.active {
+      border-color: var(--c-yellow);
+      background: rgba(244, 208, 63, 0.09);
+    }
+    .seq-item.completed {
+      opacity: 0.65;
+    }
+    .seq-num {
+      font-family: var(--font-mono);
+      font-weight: 700;
+      color: var(--c-yellow);
+      width: 24px;
+    }
+    .seq-info {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      overflow: hidden;
+    }
+    .seq-label {
+      font-weight: 500;
+      color: var(--text-white);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .seq-rtl {
+      font-family: var(--font-mono);
+      font-size: 0.74rem;
+      color: var(--c-blue);
+    }
+    .seq-next-tag {
+      font-family: var(--font-mono);
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      white-space: nowrap;
+    }
+
+    /* FOOTER */
+    footer {
+      background: var(--bg-panel);
+      border-top: 1px solid var(--border-base);
+      padding: 6px 20px;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0;
+    }
+
+    /* ==========================================================================
+       SVG STYLING (3b1b Aesthetic: Doble Trazo Hueco Fiel a sic_diagrama.png)
+       ========================================================================== */
+    .bus-wire {
+      stroke: #474b69;
+      stroke-width: 4;
+      fill: none;
+      stroke-linecap: square;
+      stroke-linejoin: miter;
+    }
+    .bus-wire-thin {
+      stroke: #3c405a;
+      stroke-width: 2;
+      fill: none;
+      stroke-linecap: square;
+      stroke-linejoin: miter;
+    }
+
+    /* Flecha de bus de doble trazo hueca */
+    .bus-double-arrow {
+      stroke: #474b69;
+      stroke-width: 1.5;
+      fill: #151622;
+      stroke-linejoin: miter;
+      stroke-linecap: square;
+    }
+
+    /* Bloques de registros */
+    .reg-rect {
+      fill: #161722;
+      stroke: #414561;
+      stroke-width: 1.5;
+      rx: 4;
+      transition: all 0.25s ease;
+    }
+    .reg-rect.active-write {
+      stroke: var(--c-yellow);
+      stroke-width: 2.5;
+      fill: #24241a;
+      filter: drop-shadow(0 0 10px rgba(244, 208, 63, 0.5));
+    }
+    .reg-rect.active-read {
+      stroke: var(--c-blue);
+      stroke-width: 2.5;
+      fill: #14222b;
+      filter: drop-shadow(0 0 10px rgba(88, 196, 221, 0.5));
+    }
+
+    /* Bloque de Memoria */
+    .mem-rect {
+      fill: #141520;
+      stroke: #484d6b;
+      stroke-width: 2;
+      rx: 0;
+      transition: all 0.25s ease;
+    }
+    .mem-rect.active-read {
+      stroke: var(--c-blue);
+      stroke-width: 2.5;
+      fill: #13222a;
+      filter: drop-shadow(0 0 12px rgba(88, 196, 221, 0.55));
+    }
+    .mem-rect.active-write {
+      stroke: var(--c-green);
+      stroke-width: 2.5;
+      fill: #12241b;
+      filter: drop-shadow(0 0 12px rgba(46, 204, 113, 0.55));
+    }
+
+    /* Bloque ALU */
+    .alu-rect {
+      fill: #161722;
+      stroke: #434763;
+      stroke-width: 1.8;
+      rx: 4;
+      transition: all 0.25s ease;
+    }
+    .alu-rect.active {
+      stroke: var(--c-yellow);
+      stroke-width: 2.5;
+      fill: #262419;
+      filter: drop-shadow(0 0 12px rgba(244, 208, 63, 0.5));
+    }
+
+    /* Tipografía interna de los bloques en SVG */
+    .svg-title {
+      font-family: var(--font-sans);
+      font-size: 13px;
+      font-style: italic;
+      font-weight: 600;
+      fill: #f1f5f9;
+      text-anchor: middle;
+      dominant-baseline: central;
+    }
+    .svg-sub {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      fill: #8b92b0;
+      text-anchor: middle;
+      dominant-baseline: central;
+    }
+    .svg-reg-val {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 700;
+      fill: var(--c-yellow);
+      text-anchor: middle;
+      dominant-baseline: central;
+      letter-spacing: 0.05em;
+      transition: fill 0.2s ease;
+    }
+    .svg-reg-val.is-read {
+      fill: var(--c-blue);
+    }
+    .svg-reg-val.is-idle {
+      fill: #94a3b8;
+    }
+    .svg-bus-lbl {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-style: italic;
+      font-weight: 600;
+      fill: #6d7596;
+      dominant-baseline: central;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- TOP HEADER -->
+  <header>
+    <div class="brand-title">
+      <span>SIC 18-Bits</span>
+      <span class="brand-badge">AHPL Datapath</span>
+    </div>
+
+    <!-- Selector de Instrucciones Directas -->
+    <div class="selector-group">
+      <span class="selector-lbl">Instrucción:</span>
+      <button class="btn-inst active" data-inst="LAC">LAC 150</button>
+      <button class="btn-inst" data-inst="TAD">TAD 150</button>
+      <button class="btn-inst" data-inst="AND">AND 150</button>
+      <button class="btn-inst" data-inst="DAC">DAC 150</button>
+      <button class="btn-inst" data-inst="ISZ_NZ">ISZ (MD&ne;0)</button>
+      <button class="btn-inst" data-inst="ISZ_Z">ISZ (MD=0)</button>
+      <button class="btn-inst" data-inst="JMP">JMP 1050</button>
+      <button class="btn-inst" data-inst="JMS">JMS 1100</button>
+    </div>
+
+    <!-- Botones de Control de Navegación -->
+    <div class="playback-group">
+      <button id="btn-reset" class="btn-ctrl" title="Volver al paso inicial">⏮ Reiniciar</button>
+      <button id="btn-prev" class="btn-ctrl" title="Paso anterior">◀ Anterior</button>
+      <button id="btn-next" class="btn-ctrl btn-primary" title="Avanzar etapa">Siguiente ▶</button>
+      <button id="btn-auto" class="btn-ctrl" title="Reproducir ciclo automáticamente">▶ Play Auto</button>
+    </div>
+  </header>
+
+  <!-- MAIN VIEWPORT -->
+  <main>
+    <!-- LIENZO DE DATAPATH -->
+    <div class="datapath-container">
+      <!-- Banner flotante superior en el canvas con el Paso AHPL -->
+      <div class="step-banner">
+        <div class="step-banner-left">
+          <span class="step-num-badge" id="banner-step-num">PASO 2</span>
+          <span class="step-name" id="banner-step-name">Fetch: Transferir PC a Dirección</span>
+          <span class="step-rtl-formula" id="banner-step-rtl">MA &larr; PC</span>
+        </div>
+        <div class="step-progress-counter" id="banner-step-counter">Ciclo 1 / 7</div>
+      </div>
+
+      <!-- Canvas SVG robusto: Vista fija 840x540 con líneas y flechas dobles huecas alineadas -->
+      <div class="svg-wrapper">
+        <svg id="datapath-svg" viewBox="0 0 840 540" preserveAspectRatio="xMidYMid meet">
+
+          <!-- ========================================================
+               1. BUSES ESTÁTICOS Y MARCO OBUS [19]
+               ======================================================== -->
+          
+          <!-- Marco OBUS [19] envolvente en U -->
+          <path class="bus-wire" d="M 40 180 L 40 500 L 800 500 L 800 180" />
+          <path class="bus-wire" d="M 40 180 L 330 180" />
+          <path class="bus-wire" d="M 430 180 L 800 180" />
+          <text x="640" y="485" class="svg-bus-lbl">OBUS [19]</text>
+          
+          <!-- Línea estática OBUS_0 hacia Lf -->
+          <path class="bus-wire-thin" d="M 330 180 L 330 235" />
+          <text x="335" y="208" class="svg-bus-lbl" style="font-size: 10px;">OBUS₀</text>
+
+          <!-- ABUS [18] (debajo de IR y AC, extendido de x=115 a x=275 para unirse a la flecha de la ALU en x=265) -->
+          <path class="bus-wire" d="M 115 325 L 275 325" />
+          <text x="115" y="343" class="svg-bus-lbl">ABUS [18]</text>
+
+          <!-- BBUS [18] (debajo de MD, IA, IB y PC, extendido desde x=400 hasta x=755 para unirse a la flecha de la ALU en x=410) -->
+          <path class="bus-wire" d="M 400 325 L 755 325" />
+          <text x="580" y="343" class="svg-bus-lbl">BBUS [18]</text>
+
+
+          <!-- ========================================================
+               2. MEMORIA M FLANQUEADA POR MA Y MD (LITERALMENTE PEGADOS, SIN FLECHAS)
+               ======================================================== -->
+          <!-- MA[13] (Pegado al costado izquierdo de M: x=160 a 260) -->
+          <g id="node-ma" transform="translate(160, 30)">
+            <rect class="reg-rect" width="100" height="70" />
+            <text x="50" y="26" class="svg-title">MA [13]</text>
+            <text x="50" y="48" class="svg-reg-val" id="svg-val-ma">001000</text>
+          </g>
+
+          <!-- Memoria M (2^13 x 18) en el centro superior: x=260 a 380 (altura y=12 a 118) -->
+          <g id="node-m" transform="translate(260, 12)">
+            <rect class="mem-rect" width="120" height="106" />
+            <text x="60" y="38" class="svg-title" style="font-size: 16px;">M</text>
+            <text x="60" y="65" class="svg-sub" style="font-size: 12px;">2¹³ &times; 18</text>
+            <text x="60" y="88" class="svg-sub" id="svg-mem-state" style="fill: var(--c-blue); font-size: 9px;">BUSFN(M; MA)</text>
+          </g>
+
+          <!-- MD[18] (Pegado al costado derecho de M: x=380 a 480) -->
+          <g id="node-md" transform="translate(380, 30)">
+            <rect class="reg-rect" width="100" height="70" />
+            <text x="50" y="26" class="svg-title">MD [18]</text>
+            <text x="50" y="48" class="svg-reg-val" id="svg-val-md">000000</text>
+          </g>
+
+          <!-- Flecha doble hueca desde OBUS hacia MA (en x=115 de OBUS sube y dobla hacia MA en x=160) -->
+          <path class="bus-double-arrow" d="M 111,180 L 111,61 L 152,61 L 152,56 L 160,65 L 152,74 L 152,69 L 119,69 L 119,180 Z" />
+
+          <!-- Conexiones externas de MD: bajada a BBUS y entrada desde OBUS -->
+          <!-- Bajada vertical de MD hacia BBUS en x=430 (desde y=100 hasta y=325) -->
+          <path class="bus-double-arrow" d="M 426,100 L 426,317 L 421,317 L 430,325 L 439,317 L 434,317 L 434,100 Z" />
+          <!-- Flecha desde OBUS superior bajando hacia MD en x=450 (desde y=180 hasta y=100) -->
+          <path class="bus-double-arrow" d="M 454,180 L 454,108 L 459,108 L 450,100 L 441,108 L 446,108 L 446,180 Z" />
+
+
+          <!-- ========================================================
+               3. REGISTROS INTERNOS (Con sus flechas dobles huecas a buses)
+               ======================================================== -->
+
+          <!-- IR [18] (x: 85 a 185, centro x=135) -->
+          <polygon class="bus-double-arrow" points="131,180 131,227 126,227 135,235 144,227 139,227 139,180" />
+          <g id="node-ir" transform="translate(85, 235)">
+            <rect class="reg-rect" width="100" height="52" />
+            <text x="50" y="20" class="svg-title">IR [18]</text>
+            <text x="50" y="37" class="svg-reg-val" id="svg-val-ir">000000</text>
+          </g>
+          <polygon class="bus-double-arrow" points="131,287 131,317 126,317 135,325 144,317 139,317 139,287" />
+
+          <!-- AC [18] (x: 195 a 295, centro x=245) -->
+          <polygon class="bus-double-arrow" points="241,180 241,227 236,227 245,235 254,227 249,227 249,180" />
+          <g id="node-ac" transform="translate(195, 235)">
+            <rect class="reg-rect" width="100" height="52" />
+            <text x="50" y="20" class="svg-title">AC [18]</text>
+            <text x="50" y="37" class="svg-reg-val" id="svg-val-ac">000042</text>
+          </g>
+          <polygon class="bus-double-arrow" points="241,287 241,317 236,317 245,325 254,317 249,317 249,287" />
+
+          <!-- Lf (Link flag de 1 bit, x: 305 a 355) -->
+          <g id="node-lf" transform="translate(305, 235)">
+            <rect class="reg-rect" width="50" height="52" />
+            <text x="25" y="20" class="svg-title">Lf</text>
+            <text x="25" y="37" class="svg-reg-val" id="svg-val-lf">0</text>
+          </g>
+          <path class="bus-wire-thin" d="M 330 287 L 330 380 L 320 380" />
+
+          <!-- IA [13] (x: 500 a 590, centro x=545) -->
+          <polygon class="bus-double-arrow" points="541,180 541,227 536,227 545,235 554,227 549,227 549,180" />
+          <g id="node-ia" transform="translate(500, 235)">
+            <rect class="reg-rect" width="90" height="52" />
+            <text x="45" y="20" class="svg-title">IA [13]</text>
+            <text x="45" y="37" class="svg-reg-val is-idle" id="svg-val-ia">000000</text>
+          </g>
+          <polygon class="bus-double-arrow" points="541,287 541,317 536,317 545,325 554,317 549,317 549,287" />
+
+          <!-- IB [13] (x: 605 a 695, centro x=650) -->
+          <polygon class="bus-double-arrow" points="646,180 646,227 641,227 650,235 659,227 654,227 654,180" />
+          <g id="node-ib" transform="translate(605, 235)">
+            <rect class="reg-rect" width="90" height="52" />
+            <text x="45" y="20" class="svg-title">IB [13]</text>
+            <text x="45" y="37" class="svg-reg-val is-idle" id="svg-val-ib">000000</text>
+          </g>
+          <polygon class="bus-double-arrow" points="646,287 646,317 641,317 650,325 659,317 654,317 654,287" />
+
+          <!-- PC [13] (x: 710 a 800, centro x=755) -->
+          <polygon class="bus-double-arrow" points="751,180 751,227 746,227 755,235 764,227 759,227 759,180" />
+          <g id="node-pc" transform="translate(710, 235)">
+            <rect class="reg-rect" width="90" height="52" />
+            <text x="45" y="20" class="svg-title">PC [13]</text>
+            <text x="45" y="37" class="svg-reg-val" id="svg-val-pc">001000</text>
+          </g>
+          <polygon class="bus-double-arrow" points="751,287 751,317 746,317 755,325 764,317 759,317 759,287" />
+
+
+          <!-- ========================================================
+               4. UNIDAD ARITMÉTICO-LÓGICA (ALU)
+               ======================================================== -->
+          <!-- Flecha doble hueca de ABUS hacia ALU (en x=265, perfectamente unida al ABUS extendido a x=275) -->
+          <polygon class="bus-double-arrow" points="261,325 261,367 256,367 265,375 274,367 269,367 269,325" />
+          <!-- Flecha doble hueca de BBUS hacia ALU (en x=410, perfectamente unida al BBUS extendido desde x=400) -->
+          <polygon class="bus-double-arrow" points="406,325 406,367 401,367 410,375 419,367 414,367 414,325" />
+
+          <!-- Bloque de la ALU -->
+          <g id="node-alu" transform="translate(240, 375)">
+            <rect class="alu-rect" width="195" height="55" />
+            <text x="97" y="22" class="svg-title" style="font-size: 15px; font-weight: 700;">ALU</text>
+            <text x="97" y="40" class="svg-sub" id="svg-alu-sub">Salidas ALU...</text>
+          </g>
+
+          <!-- Flechas dobles huecas de salida de ALU hacia OBUS inferior (y=430 a 500) -->
+          <polygon class="bus-double-arrow" points="256,430 256,492 251,492 260,500 269,492 264,492 264,430" />
+          <polygon class="bus-double-arrow" points="411,430 411,492 406,492 415,500 424,492 419,492 419,430" />
+          <text x="337" y="465" class="svg-sub" style="font-size: 14px;">. . .</text>
+
+        </svg>
+      </div>
+    </div>
+
+    <!-- PANEL LATERAL SIMPLIFICADO -->
+    <div class="sidebar">
+      
+      <!-- Card: Pizarra Didáctica y Control de Bifurcación -->
+      <div class="card">
+        <div class="card-title">
+          <span>Pizarra Didáctica</span>
+          <span style="color: var(--c-yellow);" id="lbl-time-cycle">Ciclo T1</span>
+        </div>
+
+        <div class="explanation-text" id="desc-explanation">
+          El ciclo comienza preparando la dirección de memoria. El valor de <strong>PC</strong> se transfiere a <strong>MA</strong>.
+        </div>
+        
+        <!-- Caja de Bifurcación / Siguiente Paso y Condicionales -->
+        <div class="transition-box">
+          <div class="transition-row">
+            <span class="lbl">Fase Actual:</span>
+            <span class="val" id="meta-phase">Fetch de Instrucción</span>
+          </div>
+          <div class="transition-row">
+            <span class="lbl">Operación RTL:</span>
+            <span class="val" id="meta-rtl">MA &larr; PC</span>
+          </div>
+          <div class="transition-row" style="margin-top: 4px; padding-top: 4px; border-top: 1px dashed var(--border-base);">
+            <span class="lbl">Siguiente Paso:</span>
+            <span class="next-step-badge" id="meta-next-step">Paso 3</span>
+          </div>
+          <div class="transition-row">
+            <span class="lbl">Condición de bifurcación:</span>
+            <span class="val" style="color: var(--c-orange); font-size: 0.78rem;" id="meta-condition">Incondicional (Secuencial)</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Card: Trazador de la Secuencia de Pasos AHPL -->
+      <div class="card" style="flex: 1; min-height: 0;">
+        <div class="card-title">
+          <span>Secuencia de Pasos AHPL</span>
+          <span style="color: var(--c-blue);" id="lbl-inst-code">LAC (001)</span>
+        </div>
+        <div class="sequence-tracker" id="sequence-list">
+          <!-- Generado dinámicamente según la instrucción -->
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- FOOTER -->
+  <footer>
+    <span>ETN-821: Sistemas Digitales II &bull; Carrera de Ingeniería Electrónica (UMSA)</span>
+    <span>Arquitectura SIC &bull; 47 Pasos de Control AHPL (Direccionamiento Directo)</span>
+  </footer>
+
+  <!-- ==========================================================================
+       LÓGICA INTERACTIVA DEL SIMULADOR: 3 ETAPAS POR PASO
+       ========================================================================== -->
+  <script>
+    const INSTRUCTION_CYCLES = {
+      LAC: [
+        {
+          step: 2,
+          name: "Fetch: Direccionar Instrucción",
+          rtl: "MA ← PC",
+          nextStep: 3,
+          condition: "Incondicional (Secuencial)",
+          desc: "Se transfiere el valor actual del contador de programa (<strong>PC = 001000</strong>) hacia el registro <strong>MA</strong> para seleccionar la celda de la instrucción.",
+          phase: "Fetch de Instrucción",
+          activeRegs: { read: ["node-pc"], write: ["node-ma"] },
+          prevRegs:  { pc: "001000", ma: "000000", md: "000000", ir: "000000", ac: "000042", lf: "0" },
+          finalRegs: { pc: "001000", ma: "001000", md: "000000", ir: "000000", ac: "000042", lf: "0" }
+        },
+        {
+          step: 3,
+          name: "Fetch: Leer Instrucción de Memoria",
+          rtl: "MD ← BUSFN(M; DCD(MA))",
+          nextStep: 4,
+          condition: "Incondicional (Memoria lista)",
+          desc: "La memoria decodifica la dirección en <strong>MA</strong> y coloca la instrucción (código de <code>LAC 150</code> = <strong>040150₈</strong>) en el registro <strong>MD</strong>.",
+          phase: "Fetch de Instrucción",
+          activeMem: "read",
+          activeRegs: { write: ["node-md"] },
+          prevRegs:  { pc: "001000", ma: "001000", md: "000000", ir: "000000", ac: "000042", lf: "0" },
+          finalRegs: { pc: "001000", ma: "001000", md: "040150", ir: "000000", ac: "000042", lf: "0" }
+        },
+        {
+          step: 4,
+          name: "Fetch: Cargar Registro de Instrucción",
+          rtl: "IR ← MD",
+          nextStep: 15,
+          condition: "Bifurcación: IR₀:₂ = 001 (LAC) → Paso 15",
+          desc: "La palabra en <strong>MD</strong> se carga en el registro de instrucción <strong>IR</strong>. El decodificador identifica el código de operación <code>001</code> (LAC). La condición descarta saltos directos y bifurca al Paso 15.",
+          phase: "Decodificación (Decode)",
+          activeRegs: { read: ["node-md"], write: ["node-ir"] },
+          prevRegs:  { pc: "001000", ma: "001000", md: "040150", ir: "000000", ac: "000042", lf: "0" },
+          finalRegs: { pc: "001000", ma: "001000", md: "040150", ir: "040150", ac: "000042", lf: "0" }
+        },
+        {
+          step: 15,
+          name: "Operand Prep: Cargar Dirección Efectiva",
+          rtl: "MA ← IR₅:₁₇",
+          nextStep: 16,
+          condition: "IR₀ = 0 (Lectura de memoria)",
+          desc: "Se extrae el campo de dirección de operando (bits 5 a 17 de IR = <strong>000150₈</strong>) y se coloca en <strong>MA</strong>. Como IR₀ = 0 (lectura), se dirige al Paso 16.",
+          phase: "Preparación de Operando",
+          activeRegs: { read: ["node-ir"], write: ["node-ma"] },
+          prevRegs:  { pc: "001000", ma: "001000", md: "040150", ir: "040150", ac: "000042", lf: "0" },
+          finalRegs: { pc: "001000", ma: "000150", md: "040150", ir: "040150", ac: "000042", lf: "0" }
+        },
+        {
+          step: 16,
+          name: "Operand Fetch: Extraer Dato de Memoria",
+          rtl: "MD ← BUSFN(M; DCD(MA))",
+          nextStep: 17,
+          condition: "IR₁:₂ ≠ 00 (No es ISZ)",
+          desc: "Se lee el operando contenido en M[000150] (en este ejemplo: <strong>000777₈</strong>) depositándolo en <strong>MD</strong>. Como la instrucción no es ISZ, la condición transfiere el control a la ALU en el Paso 17.",
+          phase: "Extracción de Dato",
+          activeMem: "read",
+          activeRegs: { write: ["node-md"] },
+          prevRegs:  { pc: "001000", ma: "000150", md: "040150", ir: "040150", ac: "000042", lf: "0" },
+          finalRegs: { pc: "001000", ma: "000150", md: "000777", ir: "040150", ac: "000042", lf: "0" }
+        },
+        {
+          step: 17,
+          name: "Execute: Cargar Dato en Acumulador",
+          rtl: "AC ← MD",
+          nextStep: 24,
+          condition: "Incondicional hacia fin de ciclo",
+          desc: "La ALU habilita el paso del dato de <strong>MD</strong> (000777) directamente hacia el acumulador <strong>AC</strong>, reemplazando su valor anterior sin alterar la bandera <strong>Lf</strong>.",
+          phase: "Ejecución (ALU)",
+          activeRegs: { read: ["node-md"], write: ["node-ac"] },
+          activeAlu: true,
+          prevRegs:  { pc: "001000", ma: "000150", md: "000777", ir: "040150", ac: "000042", lf: "0" },
+          finalRegs: { pc: "001000", ma: "000150", md: "000777", ir: "040150", ac: "000777", lf: "0" }
+        },
+        {
+          step: 24,
+          name: "Next Instruction: Incrementar PC",
+          rtl: "PC ← INC(PC)",
+          nextStep: 2,
+          condition: "Incondicional → Reinicia en Paso 2",
+          desc: "El ciclo concluye incrementando el contador de programa: el <strong>PC</strong> pasa de 001000 a <strong>001001</strong>. El procesador vuelve al Paso 2 para buscar la siguiente instrucción.",
+          phase: "Conclusión / Fetch Siguiente",
+          activeRegs: { read: ["node-pc"], write: ["node-pc"] },
+          prevRegs:  { pc: "001000", ma: "000150", md: "000777", ir: "040150", ac: "000777", lf: "0" },
+          finalRegs: { pc: "001001", ma: "000150", md: "000777", ir: "040150", ac: "000777", lf: "0" }
+        }
+      ],
+
+      TAD: [
+        {
+          step: 2,
+          name: "Fetch: Direccionar Instrucción",
+          rtl: "MA ← PC",
+          nextStep: 3,
+          condition: "Incondicional (Secuencial)",
+          desc: "Se coloca la dirección actual de <strong>PC</strong> (001000) en <strong>MA</strong>.",
+          phase: "Fetch de Instrucción",
+          activeRegs: { read: ["node-pc"], write: ["node-ma"] },
+          prevRegs:  { pc: "001000", ma: "000000", md: "000000", ir: "000000", ac: "000025", lf: "0" },
+          finalRegs: { pc: "001000", ma: "001000", md: "000000", ir: "000000", ac: "000025", lf: "0" }
+        },
+        {
+          step: 3,
+          name: "Fetch: Leer Memoria",
+          rtl: "MD ← BUSFN(M; DCD(MA))",
+          nextStep: 4,
+          condition: "Incondicional (Memoria lista)",
+          desc: "Se lee la instrucción <code>TAD 150</code> (060150₈) en <strong>MD</strong>.",
+          phase: "Fetch de Instrucción",
+          activeMem: "read",
+          activeRegs: { write: ["node-md"] },
+          prevRegs:  { pc: "001000", ma: "001000", md: "000000", ir: "000000", ac: "000025", lf: "0" },
+          finalRegs: { pc: "001000", ma: "001000", md: "060150", ir: "000000", ac: "000025", lf: "0" }
+        },
+        {
+          step: 4,
+          name: "Fetch: Cargar IR",
+          rtl: "IR ← MD",
+          nextStep: 15,
+          condition: "Bifurcación: IR₀:₂ = 011 (TAD) → Paso 15",
+          desc: "El código de operación <code>011</code> (TAD) se carga en el registro <strong>IR</strong>.",
+          phase: "Decodificación (Decode)",
+          activeRegs: { read: ["node-md"], write: ["node-ir"] },
+          prevRegs:  { pc: "001000", ma: "001000", md: "060150", ir: "000000", ac: "000025", lf: "0" },
+          finalRegs: { pc: "001000", ma: "001000", md: "060150", ir: "060150", ac: "000025", lf: "0" }
+        },
+        {
+          step: 15,
+          name: "Operand Prep: Cargar Dirección Efectiva",
+          rtl: "MA ← IR₅:₁₇",
+          nextStep: 16,
+          condition: "IR₀ = 0 (Lectura de memoria)",
+          desc: "La dirección 000150 se copia de <strong>IR</strong> a <strong>MA</strong>.",
+          phase: "Preparación de Operando",
+          activeRegs: { read: ["node-ir"], write: ["node-ma"] },
+          prevRegs:  { pc: "001000", ma: "001000", md: "060150", ir: "060150", ac: "000025", lf: "0" },
+          finalRegs: { pc: "001000", ma: "000150", md: "060150", ir: "060150", ac: "000025", lf: "0" }
+        },
+        {
+          step: 16,
+          name: "Operand Fetch: Extraer Sumando",
+          rtl: "MD ← BUSFN(M; DCD(MA))",
+          nextStep: 17,
+          condition: "IR₁:₂ ≠ 00 (No es ISZ)",
+          desc: "Se lee el operando de memoria M[150] (valor <strong>000012₈</strong>) y se aloja en <strong>MD</strong>.",
+          phase: "Extracción de Dato",
+          activeMem: "read",
+          activeRegs: { write: ["node-md"] },
+          prevRegs:  { pc: "001000", ma: "000150", md: "060150", ir: "060150", ac: "000025", lf: "0" },
+          finalRegs: { pc: "001000", ma: "000150", md: "000012", ir: "060150", ac: "000025", lf: "0" }
+        },
+        {
+          step: 17,
+          name: "Execute: Suma en Complemento a 2",
+          rtl: "AC ← ADD(MD, AC) ; Lf ← CARRY",
+          nextStep: 24,
+          condition: "Incondicional hacia fin de ciclo",
+          desc: "La ALU suma el valor de <strong>AC</strong> (000025) y <strong>MD</strong> (000012). El resultado (<strong>000037₈</strong>) se guarda en <strong>AC</strong> y el bit de acarreo se asigna al registro bandera <strong>Lf</strong>.",
+          phase: "Ejecución (ALU)",
+          activeRegs: { read: ["node-ac", "node-md"], write: ["node-ac", "node-lf"] },
+          activeAlu: true,
+          prevRegs:  { pc: "001000", ma: "000150", md: "000012", ir: "060150", ac: "000025", lf: "0" },
+          finalRegs: { pc: "001000", ma: "000150", md: "000012", ir: "060150", ac: "000037", lf: "0" }
+        },
+        {
+          step: 24,
+          name: "Next Instruction: Incrementar PC",
+          rtl: "PC ← INC(PC)",
+          nextStep: 2,
+          condition: "Incondicional → Reinicia en Paso 2",
+          desc: "Se incrementa el <strong>PC</strong> a 001001 y se inicia el nuevo ciclo de búsqueda.",
+          phase: "Conclusión / Fetch Siguiente",
+          activeRegs: { read: ["node-pc"], write: ["node-pc"] },
+          prevRegs:  { pc: "001000", ma: "000150", md: "000012", ir: "060150", ac: "000037", lf: "0" },
+          finalRegs: { pc: "001001", ma: "000150", md: "000012", ir: "060150", ac: "000037", lf: "0" }
+        }
+      ],
+
+      AND: [
+        {
+          step: 2,
+          name: "Fetch: Direccionar Instrucción",
+          rtl: "MA ← PC",
+          nextStep: 3,
+          condition: "Incondicional (Secuencial)",
+          desc: "Se transfiere el valor actual de <strong>PC</strong> a <strong>MA</strong>.",
+          phase: "Fetch de Instrucción",
+          activeRegs: { read: ["node-pc"], write: ["node-ma"] },
+          prevRegs:  { pc: "001000", ma: "000000", md: "000000", ir: "000000", ac: "007700", lf: "0" },
+          finalRegs: { pc: "001000", ma: "001000", md: "000000", ir: "000000", ac: "007700", lf: "0" }
+        },
+        {
+          step: 3,
+          name: "Fetch: Leer Memoria",
+          rtl: "MD ← BUSFN(M; DCD(MA))",
+          nextStep: 4,
+          condition: "Incondicional (Memoria lista)",
+          desc: "Se lee la instrucción <code>AND 150</code> (040150₈) en <strong>MD</strong>.",
+          phase: "Fetch de Instrucción",
+          activeMem: "read",
+          activeRegs: { write: ["node-md"] },
+          prevRegs:  { pc: "001000", ma: "001000", md: "000000", ir: "000000", ac: "007700", lf: "0" },
+          finalRegs: { pc: "001000", ma: "001000", md: "040150", ir: "000000", ac: "007700", lf: "0" }
+        },
+        {
+          step: 4,
+          name: "Fetch: Cargar IR",
+          rtl: "IR ← MD",
+          nextStep: 15,
+          condition: "Bifurcación: IR₀:₂ = 010 (AND) → Paso 15",
+          desc: "El decodificador identifica el Opcode <code>010</code> (AND binario).",
+          phase: "Decodificación (Decode)",
+          activeRegs: { read: ["node-md"], write: ["node-ir"] },
+          prevRegs:  { pc: "001000", ma: "001000", md: "040150", ir: "000000", ac: "007700", lf: "0" },
+          finalRegs: { pc: "001000", ma: "001000", md: "040150", ir: "040150", ac: "007700", lf: "0" }
+        },
+        {
+          step: 15,
+          name: "Operand Prep: Cargar Dirección Efectiva",
+          rtl: "MA ← IR₅:₁₇",
+          nextStep: 16,
+          condition: "IR₀ = 0 (Lectura de memoria)",
+          desc: "Se carga la dirección 000150 en <strong>MA</strong>.",
+          phase: "Preparación de Operando",
+          activeRegs: { read: ["node-ir"], write: ["node-ma"] },
+          prevRegs:  { pc: "001000", ma: "001000", md: "040150", ir: "040150", ac: "007700", lf: "0" },
+          finalRegs: { pc: "001000", ma: "000150", md: "040150", ir: "040150", ac: "007700", lf: "0" }
+        },
+        {
+          step: 16,
+          name: "Operand Fetch: Extraer Máscara",
+          rtl: "MD ← BUSFN(M; DCD(MA))",
+          nextStep: 17,
+          condition: "IR₁:₂ ≠ 00 (No es ISZ)",
+          desc: "Se lee la máscara en memoria M[150] (valor <strong>000360₈</strong>) hacia <strong>MD</strong>.",
+          phase: "Extracción de Dato",
+          activeMem: "read",
+          activeRegs: { write: ["node-md"] },
+          prevRegs:  { pc: "001000", ma: "000150", md: "040150", ir: "040150", ac: "007700", lf: "0" },
+          finalRegs: { pc: "001000", ma: "000150", md: "000360", ir: "040150", ac: "007700", lf: "0" }
+        },
+        {
+          step: 17,
+          name: "Execute: Operación AND Bit a Bit",
+          rtl: "AC ← MD ∧ AC",
+          nextStep: 24,
+          condition: "Incondicional hacia fin de ciclo",
+          desc: "La ALU calcula el AND lógico bit a bit entre <strong>MD</strong> (000360) y <strong>AC</strong> (007700). El resultado <strong>000300₈</strong> se deposita en <strong>AC</strong>.",
+          phase: "Ejecución (ALU)",
+          activeRegs: { read: ["node-ac", "node-md"], write: ["node-ac"] },
+          activeAlu: true,
+          prevRegs:  { pc: "001000", ma: "000150", md: "000360", ir: "040150", ac: "007700", lf: "0" },
+          finalRegs: { pc: "001000", ma: "000150", md: "000360", ir: "040150", ac: "000300", lf: "0" }
+        },
+        {
+          step: 24,
+          name: "Next Instruction: Incrementar PC",
+          rtl: "PC ← INC(PC)",
+          nextStep: 2,
+          condition: "Incondicional → Reinicia en Paso 2",
+          desc: "Avanza el <strong>PC</strong> a 001001.",
+          phase: "Conclusión / Fetch Siguiente",
+          activeRegs: { read: ["node-pc"], write: ["node-pc"] },
+          prevRegs:  { pc: "001000", ma: "000150", md: "000360", ir: "040150", ac: "000300", lf: "0" },
+          finalRegs: { pc: "001001", ma: "000150", md: "000360", ir: "040150", ac: "000300", lf: "0" }
+        }
+      ],
+
+      DAC: [
+        {
+          step: 2,
+          name: "Fetch: Direccionar Instrucción",
+          rtl: "MA ← PC",
+          nextStep: 3,
+          condition: "Incondicional (Secuencial)",
+          desc: "Se coloca la dirección actual del <strong>PC</strong> (001000) en <strong>MA</strong>.",
+          phase: "Fetch de Instrucción",
+          activeRegs: { read: ["node-pc"], write: ["node-ma"] },
+          prevRegs:  { pc: "001000", ma: "000000", md: "000000", ir: "000000", ac: "000555", lf: "0" },
+          finalRegs: { pc: "001000", ma: "001000", md: "000000", ir: "000000", ac: "000555", lf: "0" }
+        },
+        {
+          step: 3,
+          name: "Fetch: Leer Memoria",
+          rtl: "MD ← BUSFN(M; DCD(MA))",
+          nextStep: 4,
+          condition: "Incondicional (Memoria lista)",
+          desc: "Se lee la instrucción <code>DAC 150</code> (120150₈) en <strong>MD</strong>.",
+          phase: "Fetch de Instrucción",
+          activeMem: "read",
+          activeRegs: { write: ["node-md"] },
+          prevRegs:  { pc: "001000", ma: "001000", md: "000000", ir: "000000", ac: "000555", lf: "0" },
+          finalRegs: { pc: "001000", ma: "001000", md: "120150", ir: "000000", ac: "000555", lf: "0" }
+        },
+        {
+          step: 4,
+          name: "Fetch: Cargar IR",
+          rtl: "IR ← MD",
+          nextStep: 15,
+          condition: "Bifurcación: IR₀:₂ = 101 (DAC) → Paso 15",
+          desc: "Se carga <strong>IR</strong>. El decodificador detecta Opcode <code>101</code> (DAC).",
+          phase: "Decodificación (Decode)",
+          activeRegs: { read: ["node-md"], write: ["node-ir"] },
+          prevRegs:  { pc: "001000", ma: "001000", md: "120150", ir: "000000", ac: "000555", lf: "0" },
+          finalRegs: { pc: "001000", ma: "001000", md: "120150", ir: "120150", ac: "000555", lf: "0" }
+        },
+        {
+          step: 15,
+          name: "Operand Prep: Destino en MA",
+          rtl: "MA ← IR₅:₁₇",
+          nextStep: 21,
+          condition: "IR₀ = 1 (Escritura en memoria) → Paso 21",
+          desc: "Se coloca la dirección de destino (000150) en <strong>MA</strong>. Como IR₀ = 1, la máquina salta a la rama de escritura en el Paso 21.",
+          phase: "Preparación de Dirección",
+          activeRegs: { read: ["node-ir"], write: ["node-ma"] },
+          prevRegs:  { pc: "001000", ma: "001000", md: "120150", ir: "120150", ac: "000555", lf: "0" },
+          finalRegs: { pc: "001000", ma: "000150", md: "120150", ir: "120150", ac: "000555", lf: "0" }
+        },
+        {
+          step: 21,
+          name: "Write Prep: Copiar AC a MD",
+          rtl: "MD ← AC",
+          nextStep: 22,
+          condition: "Incondicional (Secuencial a escritura)",
+          desc: "El contenido de <strong>AC</strong> (000555) se copia en <strong>MD</strong>. <em>¡Regla fundamental: AC conserva intacto su valor, no se borra!</em>",
+          phase: "Preparación de Escritura",
+          activeRegs: { read: ["node-ac"], write: ["node-md"] },
+          prevRegs:  { pc: "001000", ma: "000150", md: "120150", ir: "120150", ac: "000555", lf: "0" },
+          finalRegs: { pc: "001000", ma: "000150", md: "000555", ir: "120150", ac: "000555", lf: "0" }
+        },
+        {
+          step: 22,
+          name: "Memory Write: Guardar en Memoria",
+          rtl: "M * DCD(MA) ← MD",
+          nextStep: 24,
+          condition: "IR₂ = 1 (Es DAC, no es JMS) → Paso 24",
+          desc: "Se habilita la línea de escritura en memoria. El valor en <strong>MD</strong> (000555) se graba en <strong>M[000150]</strong>. Como IR₂ = 1 (DAC), no altera el PC y salta directo al Paso 24.",
+          phase: "Escritura en Memoria",
+          activeMem: "write",
+          activeRegs: { read: ["node-md"] },
+          prevRegs:  { pc: "001000", ma: "000150", md: "000555", ir: "120150", ac: "000555", lf: "0" },
+          finalRegs: { pc: "001000", ma: "000150", md: "000555", ir: "120150", ac: "000555", lf: "0" }
+        },
+        {
+          step: 24,
+          name: "Next Instruction: Incrementar PC",
+          rtl: "PC ← INC(PC)",
+          nextStep: 2,
+          condition: "Incondicional → Reinicia en Paso 2",
+          desc: "El <strong>PC</strong> se incrementa a 001001.",
+          phase: "Conclusión / Fetch Siguiente",
+          activeRegs: { read: ["node-pc"], write: ["node-pc"] },
+          prevRegs:  { pc: "001000", ma: "000150", md: "000555", ir: "120150", ac: "000555", lf: "0" },
+          finalRegs: { pc: "001001", ma: "000150", md: "000555", ir: "120150", ac: "000555", lf: "0" }
+        }
+      ],
+
+      ISZ_NZ: [
+        {
+          step: 2,
+          name: "Fetch: Direccionar Instrucción",
+          rtl: "MA ← PC",
+          nextStep: 3,
+          condition: "Incondicional (Secuencial)",
+          desc: "Cargar dirección del contador de programa en <strong>MA</strong>.",
+          phase: "Fetch de Instrucción",
+          activeRegs: { read: ["node-pc"], write: ["node-ma"] },
+          prevRegs:  { pc: "001000", ma: "000000", md: "000000", ir: "000000", ac: "000000", lf: "0" },
+          finalRegs: { pc: "001000", ma: "001000", md: "000000", ir: "000000", ac: "000000", lf: "0" }
+        },
+        {
+          step: 3,
+          name: "Fetch: Leer Memoria",
+          rtl: "MD ← BUSFN(M; DCD(MA))",
+          nextStep: 4,
+          condition: "Incondicional (Memoria lista)",
+          desc: "Leer instrucción <code>ISZ 150</code> (000150₈) en <strong>MD</strong>.",
+          phase: "Fetch de Instrucción",
+          activeMem: "read",
+          activeRegs: { write: ["node-md"] },
+          prevRegs:  { pc: "001000", ma: "001000", md: "000000", ir: "000000", ac: "000000", lf: "0" },
+          finalRegs: { pc: "001000", ma: "001000", md: "000150", ir: "000000", ac: "000000", lf: "0" }
+        },
+        {
+          step: 4,
+          name: "Fetch: Cargar IR",
+          rtl: "IR ← MD",
+          nextStep: 15,
+          condition: "Bifurcación: IR₀:₂ = 000 (ISZ) → Paso 15",
+          desc: "Decodificar instrucción ISZ (Opcode <code>000</code>).",
+          phase: "Decodificación (Decode)",
+          activeRegs: { read: ["node-md"], write: ["node-ir"] },
+          prevRegs:  { pc: "001000", ma: "001000", md: "000150", ir: "000000", ac: "000000", lf: "0" },
+          finalRegs: { pc: "001000", ma: "001000", md: "000150", ir: "000150", ac: "000000", lf: "0" }
+        },
+        {
+          step: 15,
+          name: "Operand Prep: Apuntar al Contador",
+          rtl: "MA ← IR₅:₁₇",
+          nextStep: 16,
+          condition: "IR₀ = 0 (Lectura)",
+          desc: "Se coloca la dirección de la variable (000150) en <strong>MA</strong>.",
+          phase: "Preparación de Operando",
+          activeRegs: { read: ["node-ir"], write: ["node-ma"] },
+          prevRegs:  { pc: "001000", ma: "001000", md: "000150", ir: "000150", ac: "000000", lf: "0" },
+          finalRegs: { pc: "001000", ma: "000150", md: "000150", ir: "000150", ac: "000000", lf: "0" }
+        },
+        {
+          step: 16,
+          name: "Operand Fetch: Extraer Valor Actual",
+          rtl: "MD ← BUSFN(M; DCD(MA))",
+          nextStep: 18,
+          condition: "IR₁:₂ = 00 (Es ISZ) → Paso 18",
+          desc: "Se lee la variable a incrementar. En este caso M[150] contiene <strong>777775₈</strong> (-3). Como IR₁:₂ = 00, se bifurca hacia el Paso 18 de incremento.",
+          phase: "Extracción de Dato",
+          activeMem: "read",
+          activeRegs: { write: ["node-md"] },
+          prevRegs:  { pc: "001000", ma: "000150", md: "000150", ir: "000150", ac: "000000", lf: "0" },
+          finalRegs: { pc: "001000", ma: "000150", md: "777775", ir: "000150", ac: "000000", lf: "0" }
+        },
+        {
+          step: 18,
+          name: "Execute: Incrementar Dato",
+          rtl: "MD ← INC(MD)",
+          nextStep: 19,
+          condition: "Incondicional (Secuencial a regrabar)",
+          desc: "La ALU incrementa el valor de <strong>MD</strong>: 777775₈ + 1 = <strong>777776₈</strong>.",
+          phase: "Ejecución (ALU)",
+          activeRegs: { read: ["node-md"], write: ["node-md"] },
+          activeAlu: true,
+          prevRegs:  { pc: "001000", ma: "000150", md: "777775", ir: "000150", ac: "000000", lf: "0" },
+          finalRegs: { pc: "001000", ma: "000150", md: "777776", ir: "000150", ac: "000000", lf: "0" }
+        },
+        {
+          step: 19,
+          name: "Memory Write: Guardar Dato Actualizado",
+          rtl: "M * DCD(MA) ← MD",
+          nextStep: 24,
+          condition: "MD ≠ 0 (NOR = 0) → NO Salta, va a Paso 24",
+          desc: "Se guarda el valor 777776 en M[150]. La condición evalúa si el resultado es cero: como <strong>MD &ne; 0</strong>, no se activa el salto del Paso 20 y va directo al Paso 24.",
+          phase: "Escritura en Memoria",
+          activeMem: "write",
+          activeRegs: { read: ["node-md"] },
+          prevRegs:  { pc: "001000", ma: "000150", md: "777776", ir: "000150", ac: "000000", lf: "0" },
+          finalRegs: { pc: "001000", ma: "000150", md: "777776", ir: "000150", ac: "000000", lf: "0" }
+        },
+        {
+          step: 24,
+          name: "Next Instruction: No Salta (MD ≠ 0)",
+          rtl: "PC ← INC(PC)",
+          nextStep: 2,
+          condition: "Incondicional → Reinicia en Paso 2",
+          desc: "Como no hubo salto, el <strong>PC</strong> solo avanza 1 posición a <strong>001001</strong> (ejecutando normalmente el salto del bucle).",
+          phase: "Conclusión / Fetch Siguiente",
+          activeRegs: { read: ["node-pc"], write: ["node-pc"] },
+          prevRegs:  { pc: "001000", ma: "000150", md: "777776", ir: "000150", ac: "000000", lf: "0" },
+          finalRegs: { pc: "001001", ma: "000150", md: "777776", ir: "000150", ac: "000000", lf: "0" }
+        }
+      ],
+
+      ISZ_Z: [
+        {
+          step: 2,
+          name: "Fetch: Direccionar Instrucción",
+          rtl: "MA ← PC",
+          nextStep: 3,
+          condition: "Incondicional (Secuencial)",
+          desc: "Cargar dirección del contador de programa en <strong>MA</strong>.",
+          phase: "Fetch de Instrucción",
+          activeRegs: { read: ["node-pc"], write: ["node-ma"] },
+          prevRegs:  { pc: "001000", ma: "000000", md: "000000", ir: "000000", ac: "000000", lf: "0" },
+          finalRegs: { pc: "001000", ma: "001000", md: "000000", ir: "000000", ac: "000000", lf: "0" }
+        },
+        {
+          step: 3,
+          name: "Fetch: Leer Memoria",
+          rtl: "MD ← BUSFN(M; DCD(MA))",
+          nextStep: 4,
+          condition: "Incondicional (Memoria lista)",
+          desc: "Leer instrucción <code>ISZ 150</code> en <strong>MD</strong>.",
+          phase: "Fetch de Instrucción",
+          activeMem: "read",
+          activeRegs: { write: ["node-md"] },
+          prevRegs:  { pc: "001000", ma: "001000", md: "000000", ir: "000000", ac: "000000", lf: "0" },
+          finalRegs: { pc: "001000", ma: "001000", md: "000150", ir: "000000", ac: "000000", lf: "0" }
+        },
+        {
+          step: 4,
+          name: "Fetch: Cargar IR",
+          rtl: "IR ← MD",
+          nextStep: 15,
+          condition: "Bifurcación: IR₀:₂ = 000 (ISZ) → Paso 15",
+          desc: "Decodificar instrucción ISZ.",
+          phase: "Decodificación (Decode)",
+          activeRegs: { read: ["node-md"], write: ["node-ir"] },
+          prevRegs:  { pc: "001000", ma: "001000", md: "000150", ir: "000000", ac: "000000", lf: "0" },
+          finalRegs: { pc: "001000", ma: "001000", md: "000150", ir: "000150", ac: "000000", lf: "0" }
+        },
+        {
+          step: 15,
+          name: "Operand Prep: Apuntar al Contador",
+          rtl: "MA ← IR₅:₁₇",
+          nextStep: 16,
+          condition: "IR₀ = 0 (Lectura)",
+          desc: "Colocar 000150 en <strong>MA</strong>.",
+          phase: "Preparación de Operando",
+          activeRegs: { read: ["node-ir"], write: ["node-ma"] },
+          prevRegs:  { pc: "001000", ma: "001000", md: "000150", ir: "000150", ac: "000000", lf: "0" },
+          finalRegs: { pc: "001000", ma: "000150", md: "000150", ir: "000150", ac: "000000", lf: "0" }
+        },
+        {
+          step: 16,
+          name: "Operand Fetch: Extraer Valor Actual",
+          rtl: "MD ← BUSFN(M; DCD(MA))",
+          nextStep: 18,
+          condition: "IR₁:₂ = 00 (Es ISZ) → Paso 18",
+          desc: "Se lee M[150], cuyo contenido es <strong>777777₈</strong> (-1 en complemento).",
+          phase: "Extracción de Dato",
+          activeMem: "read",
+          activeRegs: { write: ["node-md"] },
+          prevRegs:  { pc: "001000", ma: "000150", md: "000150", ir: "000150", ac: "000000", lf: "0" },
+          finalRegs: { pc: "001000", ma: "000150", md: "777777", ir: "000150", ac: "000000", lf: "0" }
+        },
+        {
+          step: 18,
+          name: "Execute: Incrementar Dato (Llega a Cero)",
+          rtl: "MD ← INC(MD)",
+          nextStep: 19,
+          condition: "Incondicional (Secuencial a regrabar)",
+          desc: "La ALU incrementa 777777₈ + 1 dando un desborde a <strong>000000₈</strong>.",
+          phase: "Ejecución (ALU)",
+          activeRegs: { read: ["node-md"], write: ["node-md"] },
+          activeAlu: true,
+          prevRegs:  { pc: "001000", ma: "000150", md: "777777", ir: "000150", ac: "000000", lf: "0" },
+          finalRegs: { pc: "001000", ma: "000150", md: "000000", ir: "000150", ac: "000000", lf: "0" }
+        },
+        {
+          step: 19,
+          name: "Memory Write: Guardar Cero en Memoria",
+          rtl: "M * DCD(MA) ← MD",
+          nextStep: 20,
+          condition: "MD = 0 (NOR = 1) → SALTA a Paso 20",
+          desc: "Se actualiza M[150] con 000000. Al evaluarse la condición <em>MD = 0</em>, se activa la bifurcación especial hacia el Paso 20 de salto.",
+          phase: "Escritura en Memoria",
+          activeMem: "write",
+          activeRegs: { read: ["node-md"] },
+          prevRegs:  { pc: "001000", ma: "000150", md: "000000", ir: "000150", ac: "000000", lf: "0" },
+          finalRegs: { pc: "001000", ma: "000150", md: "000000", ir: "000150", ac: "000000", lf: "0" }
+        },
+        {
+          step: 20,
+          name: "Skip Branch: Primer Salto por Cero",
+          rtl: "PC ← INC(PC)",
+          nextStep: 24,
+          condition: "Incondicional hacia paso de cierre 24",
+          desc: "Como el resultado fue cero, se realiza el primer incremento sobre el contador: el <strong>PC</strong> avanza de 001000 a <strong>001001</strong>.",
+          phase: "Bifurcación de Salto",
+          activeRegs: { read: ["node-pc"], write: ["node-pc"] },
+          prevRegs:  { pc: "001000", ma: "000150", md: "000000", ir: "000150", ac: "000000", lf: "0" },
+          finalRegs: { pc: "001001", ma: "000150", md: "000000", ir: "000150", ac: "000000", lf: "0" }
+        },
+        {
+          step: 24,
+          name: "Next Instruction: Salto Efectivo Concluido",
+          rtl: "PC ← INC(PC)",
+          nextStep: 2,
+          condition: "Incondicional → Reinicia en Paso 2",
+          desc: "El ciclo concluye con el segundo incremento de rigor en el Paso 24: el <strong>PC</strong> avanza a <strong>001002</strong>, logrando así saltear por completo la instrucción en 1001.",
+          phase: "Conclusión / Fetch Siguiente",
+          activeRegs: { read: ["node-pc"], write: ["node-pc"] },
+          prevRegs:  { pc: "001001", ma: "000150", md: "000000", ir: "000150", ac: "000000", lf: "0" },
+          finalRegs: { pc: "001002", ma: "000150", md: "000000", ir: "000150", ac: "000000", lf: "0" }
+        }
+      ],
+
+      JMP: [
+        {
+          step: 2,
+          name: "Fetch: Direccionar Instrucción",
+          rtl: "MA ← PC",
+          nextStep: 3,
+          condition: "Incondicional (Secuencial)",
+          desc: "Cargar dirección de memoria de la instrucción de salto.",
+          phase: "Fetch de Instrucción",
+          activeRegs: { read: ["node-pc"], write: ["node-ma"] },
+          prevRegs:  { pc: "001000", ma: "000000", md: "000000", ir: "000000", ac: "000000", lf: "0" },
+          finalRegs: { pc: "001000", ma: "001000", md: "000000", ir: "000000", ac: "000000", lf: "0" }
+        },
+        {
+          step: 3,
+          name: "Fetch: Leer Memoria",
+          rtl: "MD ← BUSFN(M; DCD(MA))",
+          nextStep: 4,
+          condition: "Incondicional (Memoria lista)",
+          desc: "Leer instrucción <code>JMP 1050</code> (141050₈) en <strong>MD</strong>.",
+          phase: "Fetch de Instrucción",
+          activeMem: "read",
+          activeRegs: { write: ["node-md"] },
+          prevRegs:  { pc: "001000", ma: "001000", md: "000000", ir: "000000", ac: "000000", lf: "0" },
+          finalRegs: { pc: "001000", ma: "001000", md: "141050", ir: "000000", ac: "000000", lf: "0" }
+        },
+        {
+          step: 4,
+          name: "Fetch: Cargar IR",
+          rtl: "IR ← MD",
+          nextStep: 14,
+          condition: "IR₀:₁ = 11 (Es JMP) → Paso 14",
+          desc: "Se carga IR. El decodificador identifica Opcode <code>110</code> (Salto Incondicional). La condición de salto detecta IR₀:₁ = 11 y bifurca inmediatamente al Paso 14 (evitando Paso 15).",
+          phase: "Decodificación (Decode)",
+          activeRegs: { read: ["node-md"], write: ["node-ir"] },
+          prevRegs:  { pc: "001000", ma: "001000", md: "141050", ir: "000000", ac: "000000", lf: "0" },
+          finalRegs: { pc: "001000", ma: "001000", md: "141050", ir: "141050", ac: "000000", lf: "0" }
+        },
+        {
+          step: 14,
+          name: "Execute Branch: Cargar Dirección de Salto",
+          rtl: "PC ← IR₅:₁₇",
+          nextStep: 2,
+          condition: "Incondicional → Reinicia en Paso 2",
+          desc: "La dirección destino en el campo de operando (<strong>001050₈</strong>) se carga directamente en el <strong>PC</strong>. El flujo del programa salta inmediatamente y el control vuelve directo al Paso 2 sin pasar por Paso 24.",
+          phase: "Bifurcación de Salto",
+          activeRegs: { read: ["node-ir"], write: ["node-pc"] },
+          prevRegs:  { pc: "001000", ma: "001000", md: "141050", ir: "141050", ac: "000000", lf: "0" },
+          finalRegs: { pc: "001050", ma: "001000", md: "141050", ir: "141050", ac: "000000", lf: "0" }
+        }
+      ],
+
+      JMS: [
+        {
+          step: 2,
+          name: "Fetch: Direccionar Instrucción",
+          rtl: "MA ← PC",
+          nextStep: 3,
+          condition: "Incondicional (Secuencial)",
+          desc: "Transferir <strong>PC</strong> (001000) a <strong>MA</strong>.",
+          phase: "Fetch de Instrucción",
+          activeRegs: { read: ["node-pc"], write: ["node-ma"] },
+          prevRegs:  { pc: "001000", ma: "000000", md: "000000", ir: "000000", ac: "000000", lf: "0" },
+          finalRegs: { pc: "001000", ma: "001000", md: "000000", ir: "000000", ac: "000000", lf: "0" }
+        },
+        {
+          step: 3,
+          name: "Fetch: Leer Memoria",
+          rtl: "MD ← BUSFN(M; DCD(MA))",
+          nextStep: 4,
+          condition: "Incondicional (Memoria lista)",
+          desc: "Lectura de <code>JMS 1100</code> (101100₈) en <strong>MD</strong>.",
+          phase: "Fetch de Instrucción",
+          activeMem: "read",
+          activeRegs: { write: ["node-md"] },
+          prevRegs:  { pc: "001000", ma: "001000", md: "000000", ir: "000000", ac: "000000", lf: "0" },
+          finalRegs: { pc: "001000", ma: "001000", md: "101100", ir: "000000", ac: "000000", lf: "0" }
+        },
+        {
+          step: 4,
+          name: "Fetch: Cargar IR",
+          rtl: "IR ← MD",
+          nextStep: 15,
+          condition: "Bifurcación: IR₀:₂ = 100 (JMS) → Paso 15",
+          desc: "El decodificador identifica Opcode <code>100</code> (Llamada a Subrutina).",
+          phase: "Decodificación (Decode)",
+          activeRegs: { read: ["node-md"], write: ["node-ir"] },
+          prevRegs:  { pc: "001000", ma: "001000", md: "101100", ir: "000000", ac: "000000", lf: "0" },
+          finalRegs: { pc: "001000", ma: "001000", md: "101100", ir: "101100", ac: "000000", lf: "0" }
+        },
+        {
+          step: 15,
+          name: "Operand Prep: Dirección de la Subrutina",
+          rtl: "MA ← IR₅:₁₇",
+          nextStep: 21,
+          condition: "IR₀ = 1 (Escritura en memoria) → Paso 21",
+          desc: "Se carga la dirección de cabecera de la subrutina (001100) en <strong>MA</strong>.",
+          phase: "Preparación de Dirección",
+          activeRegs: { read: ["node-ir"], write: ["node-ma"] },
+          prevRegs:  { pc: "001000", ma: "001000", md: "101100", ir: "101100", ac: "000000", lf: "0" },
+          finalRegs: { pc: "001000", ma: "001100", md: "101100", ir: "101100", ac: "000000", lf: "0" }
+        },
+        {
+          step: 21,
+          name: "Write Prep: Preparar Dirección de Retorno",
+          rtl: "MD ← 5⊤0, INC(PC)",
+          nextStep: 22,
+          condition: "IR₂ = 0 (Es JMS, guarda PC+1)",
+          desc: "Se calcula la dirección de retorno incrementando el PC actual (PC + 1 = <strong>001001</strong>) y se aloja en <strong>MD</strong> alineado con ceros.",
+          phase: "Enlace de Subrutina",
+          activeRegs: { read: ["node-pc"], write: ["node-md"] },
+          activeAlu: true,
+          prevRegs:  { pc: "001000", ma: "001100", md: "101100", ir: "101100", ac: "000000", lf: "0" },
+          finalRegs: { pc: "001000", ma: "001100", md: "001001", ir: "101100", ac: "000000", lf: "0" }
+        },
+        {
+          step: 22,
+          name: "Memory Write: Guardar Retorno en Cabecera",
+          rtl: "M * DCD(MA) ← MD",
+          nextStep: 23,
+          condition: "IR₂ = 0 (Es JMS) → Salta a Paso 23",
+          desc: "La dirección de retorno 001001 queda guardada físicamente en <strong>M[001100]</strong>. Como IR₂ = 0 (JMS), bifurca al Paso 23 para preparar el salto.",
+          phase: "Escritura en Memoria",
+          activeMem: "write",
+          activeRegs: { read: ["node-md"] },
+          prevRegs:  { pc: "001000", ma: "001100", md: "001001", ir: "101100", ac: "000000", lf: "0" },
+          finalRegs: { pc: "001000", ma: "001100", md: "001001", ir: "101100", ac: "000000", lf: "0" }
+        },
+        {
+          step: 23,
+          name: "Execute: Entrar a la Subrutina",
+          rtl: "PC ← IR₅:₁₇",
+          nextStep: 24,
+          condition: "Incondicional hacia paso de incremento 24",
+          desc: "El <strong>PC</strong> se inicializa con la dirección base de la subrutina (001100). En el siguiente paso se incrementará para empezar a ejecutar en la primera instrucción útil.",
+          phase: "Bifurcación de Salto",
+          activeRegs: { read: ["node-ir"], write: ["node-pc"] },
+          prevRegs:  { pc: "001000", ma: "001100", md: "001001", ir: "101100", ac: "000000", lf: "0" },
+          finalRegs: { pc: "001100", ma: "001100", md: "001001", ir: "101100", ac: "000000", lf: "0" }
+        },
+        {
+          step: 24,
+          name: "Next Instruction: Ejecutar Código de Subrutina",
+          rtl: "PC ← INC(PC)",
+          nextStep: 2,
+          condition: "Incondicional → Reinicia en Paso 2",
+          desc: "El <strong>PC</strong> avanza a <strong>001101</strong> (saltándose la cabecera donde quedó guardado el retorno).",
+          phase: "Conclusión / Fetch Siguiente",
+          activeRegs: { read: ["node-pc"], write: ["node-pc"] },
+          prevRegs:  { pc: "001100", ma: "001100", md: "001001", ir: "101100", ac: "000000", lf: "0" },
+          finalRegs: { pc: "001101", ma: "001100", md: "001001", ir: "101100", ac: "000000", lf: "0" }
+        }
+      ]
+    };
+
+    // ESTADO DEL SIMULADOR: PASO Y SUB-ETAPA (1, 2 o 3)
+    let currentInstKey = "LAC";
+    let currentStepIndex = 0;
+    let currentStage = 1; // 1: Iluminar, 2: Ejecutar dato, 3: Idle
+    let autoInterval = null;
+
+    // ELEMENTOS DOM
+    const bannerStepNum = document.getElementById("banner-step-num");
+    const bannerStepName = document.getElementById("banner-step-name");
+    const bannerStepRtl = document.getElementById("banner-step-rtl");
+    const bannerStepCounter = document.getElementById("banner-step-counter");
+
+    const descExplanation = document.getElementById("desc-explanation");
+    const metaPhase = document.getElementById("meta-phase");
+    const metaRtl = document.getElementById("meta-rtl");
+    const metaNextStep = document.getElementById("meta-next-step");
+    const metaCondition = document.getElementById("meta-condition");
+    const lblTimeCycle = document.getElementById("lbl-time-cycle");
+    const lblInstCode = document.getElementById("lbl-inst-code");
+    const sequenceList = document.getElementById("sequence-list");
+
+    // Elementos de texto de los registros en SVG
+    const svgValPc = document.getElementById("svg-val-pc");
+    const svgValMa = document.getElementById("svg-val-ma");
+    const svgValMd = document.getElementById("svg-val-md");
+    const svgValIr = document.getElementById("svg-val-ir");
+    const svgValAc = document.getElementById("svg-val-ac");
+    const svgValLf = document.getElementById("svg-val-lf");
+    const svgMemState = document.getElementById("svg-mem-state");
+    const svgAluSub = document.getElementById("svg-alu-sub");
+
+    const btnPrev = document.getElementById("btn-prev");
+    const btnNext = document.getElementById("btn-next");
+    const btnReset = document.getElementById("btn-reset");
+    const btnAuto = document.getElementById("btn-auto");
+
+    // RENDERIZAR TRACKER LATERAL
+    function buildSequenceTracker() {
+      sequenceList.innerHTML = "";
+      const steps = INSTRUCTION_CYCLES[currentInstKey];
+      steps.forEach((st, idx) => {
+        const item = document.createElement("div");
+        item.className = `seq-item ${idx === currentStepIndex ? "active" : ""}`;
+        item.innerHTML = `
+          <span class="seq-num">${st.step}</span>
+          <div class="seq-info">
+            <span class="seq-label">${st.name}</span>
+            <span class="seq-rtl">${st.rtl}</span>
+          </div>
+          <span class="seq-next-tag">➔ Paso ${st.nextStep}</span>
+        `;
+        item.onclick = () => {
+          stopAuto();
+          currentStepIndex = idx;
+          currentStage = 1;
+          renderStage();
+        };
+        sequenceList.appendChild(item);
+      });
+    }
+
+    // ACTUALIZAR VISUALIZACIÓN SEGÚN LA ETAPA (1, 2 o 3)
+    function renderStage() {
+      const steps = INSTRUCTION_CYCLES[currentInstKey];
+      const cur = steps[currentStepIndex];
+
+      // Banner Info
+      bannerStepNum.textContent = `PASO ${cur.step}`;
+      bannerStepName.textContent = cur.name;
+      bannerStepRtl.innerHTML = cur.rtl;
+      bannerStepCounter.textContent = `Ciclo ${currentStepIndex + 1} / ${steps.length}`;
+
+      // Pizarra didáctica limpia
+      descExplanation.innerHTML = cur.desc;
+      metaPhase.textContent = cur.phase;
+      metaRtl.innerHTML = cur.rtl;
+      metaNextStep.textContent = `Paso ${cur.nextStep}`;
+      metaCondition.textContent = cur.condition;
+      lblTimeCycle.textContent = `Ciclo T${currentStepIndex + 1}`;
+
+      // Determinar qué valores mostrar en registros (prevRegs en etapa 1, finalRegs en etapas 2 y 3)
+      const regs = (currentStage === 1) ? cur.prevRegs : cur.finalRegs;
+      svgValPc.textContent = regs.pc;
+      svgValMa.textContent = regs.ma;
+      svgValMd.textContent = regs.md;
+      svgValIr.textContent = regs.ir;
+      svgValAc.textContent = regs.ac;
+      svgValLf.textContent = regs.lf;
+
+      // Limpiar iluminaciones en cajas
+      document.querySelectorAll(".reg-rect, .mem-rect, .alu-rect").forEach(el => {
+        el.classList.remove("active-read", "active-write", "active");
+      });
+      [svgValPc, svgValMa, svgValMd, svgValIr, svgValAc, svgValLf].forEach(el => {
+        el.className.baseVal = "svg-reg-val is-idle";
+      });
+
+      // EN ETAPAS 1 Y 2: ILUMINAR CAJAS INVOLUCRADAS
+      if (currentStage === 1 || currentStage === 2) {
+        if (cur.activeRegs) {
+          if (cur.activeRegs.read) {
+            cur.activeRegs.read.forEach(rId => {
+              const el = document.querySelector(`#${rId} rect`);
+              if (el) el.classList.add("active-read");
+              const valEl = document.querySelector(`#${rId} text.svg-reg-val`);
+              if (valEl) valEl.className.baseVal = "svg-reg-val is-read";
+            });
+          }
+          if (cur.activeRegs.write) {
+            cur.activeRegs.write.forEach(rId => {
+              const el = document.querySelector(`#${rId} rect`);
+              if (el) el.classList.add("active-write");
+              const valEl = document.querySelector(`#${rId} text.svg-reg-val`);
+              if (valEl) valEl.className.baseVal = "svg-reg-val";
+            });
+          }
+        }
+
+        if (cur.activeMem === "read") {
+          document.querySelector("#node-m rect").classList.add("active-read");
+          svgMemState.textContent = "LECTURA: M[MA]";
+          svgMemState.style.fill = "var(--c-blue)";
+        } else if (cur.activeMem === "write") {
+          document.querySelector("#node-m rect").classList.add("active-write");
+          svgMemState.textContent = "ESCRITURA: M[MA]←MD";
+          svgMemState.style.fill = "var(--c-green)";
+        } else {
+          svgMemState.textContent = "2¹³ × 18";
+          svgMemState.style.fill = "#8b92b0";
+        }
+
+        if (cur.activeAlu) {
+          document.querySelector("#node-alu rect").classList.add("active");
+          svgAluSub.textContent = cur.rtl;
+          svgAluSub.style.fill = "var(--c-yellow)";
+        } else {
+          svgAluSub.textContent = "Salidas ALU...";
+          svgAluSub.style.fill = "#8b92b0";
+        }
+      } else {
+        // ETAPA 3 (IDLE): REPOSO, CAJAS APAGADAS
+        svgMemState.textContent = "2¹³ × 18";
+        svgMemState.style.fill = "#8b92b0";
+        svgAluSub.textContent = "Salidas ALU...";
+        svgAluSub.style.fill = "#8b92b0";
+      }
+
+      // Habilitar/Deshabilitar botones
+      btnPrev.disabled = (currentStepIndex === 0 && currentStage === 1);
+      btnNext.disabled = (currentStepIndex === steps.length - 1 && currentStage === 3);
+
+      // Resaltar en el tracker lateral
+      const items = sequenceList.querySelectorAll(".seq-item");
+      items.forEach((item, idx) => {
+        item.classList.remove("active");
+        if (idx === currentStepIndex) {
+          item.classList.add("active");
+          item.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+      });
+    }
+
+    // AVANZAR UNA ETAPA
+    function advanceStage() {
+      const steps = INSTRUCTION_CYCLES[currentInstKey];
+      if (currentStage < 3) {
+        currentStage++;
+      } else {
+        if (currentStepIndex < steps.length - 1) {
+          currentStepIndex++;
+          currentStage = 1;
+        } else {
+          stopAuto();
+          return;
+        }
+      }
+      renderStage();
+    }
+
+    // RETROCEDER UNA ETAPA
+    function stepBackStage() {
+      if (currentStage > 1) {
+        currentStage--;
+      } else {
+        if (currentStepIndex > 0) {
+          currentStepIndex--;
+          currentStage = 3;
+        }
+      }
+      renderStage();
+    }
+
+    // CAMBIAR DE INSTRUCCIÓN
+    function setInstruction(key) {
+      currentInstKey = key;
+      currentStepIndex = 0;
+      currentStage = 1;
+      lblInstCode.textContent = `${key} (Dir. Directo)`;
+      
+      document.querySelectorAll(".btn-inst").forEach(b => {
+        b.classList.toggle("active", b.getAttribute("data-inst") === key);
+      });
+
+      buildSequenceTracker();
+      renderStage();
+    }
+
+    // AUTOMATIZACIÓN DE PASOS POR ETAPAS
+    function toggleAuto() {
+      if (autoInterval) {
+        stopAuto();
+      } else {
+        btnAuto.textContent = "⏸ Pausar";
+        btnAuto.classList.add("btn-primary");
+        autoInterval = setInterval(() => {
+          const steps = INSTRUCTION_CYCLES[currentInstKey];
+          if (currentStepIndex === steps.length - 1 && currentStage === 3) {
+            stopAuto();
+          } else {
+            advanceStage();
+          }
+        }, 1000);
+      }
+    }
+
+    function stopAuto() {
+      if (autoInterval) {
+        clearInterval(autoInterval);
+        autoInterval = null;
+        btnAuto.textContent = "▶ Play Auto";
+        btnAuto.classList.remove("btn-primary");
+      }
+    }
+
+    // EVENT LISTENERS
+    btnNext.addEventListener("click", () => {
+      stopAuto();
+      advanceStage();
+    });
+
+    btnPrev.addEventListener("click", () => {
+      stopAuto();
+      stepBackStage();
+    });
+
+    btnReset.addEventListener("click", () => {
+      stopAuto();
+      currentStepIndex = 0;
+      currentStage = 1;
+      renderStage();
+    });
+
+    btnAuto.addEventListener("click", toggleAuto);
+
+    document.querySelectorAll(".btn-inst").forEach(btn => {
+      btn.addEventListener("click", () => {
+        stopAuto();
+        setInstruction(btn.getAttribute("data-inst"));
+      });
+    });
+
+    // TECLADO: Flecha derecha avanza etapa, flecha izquierda retrocede etapa, Espacio play/pausa
+    window.addEventListener("keydown", (e) => {
+      if (e.key === "ArrowRight") {
+        stopAuto();
+        advanceStage();
+      }
+      if (e.key === "ArrowLeft") {
+        stopAuto();
+        stepBackStage();
+      }
+      if (e.key === " ") {
+        e.preventDefault();
+        toggleAuto();
+      }
+    });
+
+    // INICIALIZACIÓN
+    setInstruction("LAC");
+  </script>
+</body>
+</html>
