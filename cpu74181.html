@@ -1,0 +1,1285 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CPU Elemental 74181 | Datapath y Ejecución Micro-RTL (3Blue1Brown Minimal Dark)</title>
+  <style>
+    /* ==========================================================================
+       3Blue1Brown (3b1b) Minimal Dark Design System
+       ========================================================================== */
+    :root {
+      --bg-canvas: #0c0d11;
+      --bg-panel: #13141c;
+      --bg-subpanel: #1a1b26;
+      --bg-card: #212332;
+      
+      --border-base: #27293a;
+      --border-light: #3a3d54;
+
+      /* 3b1b Signature Colors */
+      --c-blue: #58c4dd;       /* Principal Math Cyan/Blue (Fetch / Entradas) */
+      --c-yellow: #f4d03f;     /* Highlighting & Active Step / Destino */
+      --c-green: #2ecc71;      /* Resultado / Éxito */
+      --c-purple: #9b59b6;     /* Flags / Comparaciones */
+      --c-orange: #e67e22;     /* Selectores de Control */
+      --c-red: #e74c3c;        /* Acarreo / Condición */
+      
+      --text-white: #f8fafc;
+      --text-main: #cbd5e1;
+      --text-muted: #787f99;
+      --text-dim: #4e536b;
+
+      --font-mono: 'JetBrains Mono', 'Fira Code', 'Roboto Mono', monospace;
+      --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: var(--font-sans);
+      background-color: var(--bg-canvas);
+      color: var(--text-main);
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      overflow: hidden;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* TOP BAR / CONTROLS */
+    header {
+      background: var(--bg-panel);
+      border-bottom: 1px solid var(--border-base);
+      padding: 9px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      flex-shrink: 0;
+    }
+
+    .brand-title {
+      font-weight: 700;
+      font-size: 1.05rem;
+      letter-spacing: -0.02em;
+      color: var(--text-white);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .brand-badge {
+      background: rgba(88, 196, 221, 0.12);
+      color: var(--c-blue);
+      border: 1px solid rgba(88, 196, 221, 0.35);
+      font-size: 0.72rem;
+      font-weight: 600;
+      padding: 2px 7px;
+      border-radius: 4px;
+      letter-spacing: 0.04em;
+    }
+
+    /* Switch hacia el simulador de SIC */
+    .nav-link-btn {
+      color: var(--c-blue);
+      background: rgba(88, 196, 221, 0.08);
+      border: 1px solid rgba(88, 196, 221, 0.25);
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      transition: all 0.15s ease;
+    }
+    .nav-link-btn:hover {
+      background: rgba(88, 196, 221, 0.2);
+      border-color: var(--c-blue);
+    }
+
+    /* Selector de Ejemplos Predefinidos */
+    .selector-group {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      background: var(--bg-subpanel);
+      padding: 3px 5px;
+      border-radius: 7px;
+      border: 1px solid var(--border-base);
+    }
+    .selector-lbl {
+      font-size: 0.72rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      padding: 0 5px;
+      letter-spacing: 0.05em;
+    }
+    .btn-preset {
+      background: transparent;
+      border: 1px solid transparent;
+      color: var(--text-muted);
+      font-family: var(--font-sans);
+      font-size: 0.75rem;
+      font-weight: 600;
+      padding: 4px 8px;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .btn-preset:hover {
+      color: var(--text-white);
+      background: rgba(255,255,255,0.05);
+    }
+    .btn-preset.active {
+      background: rgba(88, 196, 221, 0.15);
+      color: var(--c-blue);
+      border-color: var(--c-blue);
+    }
+
+    /* Reproducción y Pasos */
+    .playback-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .btn-ctrl {
+      background: var(--bg-subpanel);
+      border: 1px solid var(--border-base);
+      color: var(--text-white);
+      font-family: var(--font-sans);
+      font-size: 0.8rem;
+      font-weight: 500;
+      padding: 6px 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.15s ease;
+    }
+    .btn-ctrl:hover:not(:disabled) {
+      background: var(--bg-card);
+      border-color: var(--border-light);
+    }
+    .btn-ctrl.btn-primary {
+      background: rgba(88, 196, 221, 0.15);
+      border-color: var(--c-blue);
+      color: var(--c-blue);
+      font-weight: 600;
+      min-width: 220px;
+      justify-content: center;
+    }
+    .btn-ctrl.btn-primary:hover:not(:disabled) {
+      background: rgba(88, 196, 221, 0.28);
+    }
+    .btn-ctrl:disabled {
+      opacity: 0.35;
+      cursor: not-allowed;
+    }
+
+    /* MAIN CONTAINER: 2 Columnas (Datapath central y Panel lateral con memoria editable) */
+    main {
+      flex: 1;
+      display: grid;
+      grid-template-columns: 1fr 390px;
+      gap: 16px;
+      padding: 14px 20px;
+      overflow: hidden;
+      min-height: 0;
+    }
+
+    /* CANVAS DEL DATAPATH */
+    .datapath-container {
+      background: var(--bg-panel);
+      border: 1px solid var(--border-base);
+      border-radius: 10px;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* Banner flotante superior en el canvas con el Paso activo */
+    .step-banner {
+      position: absolute;
+      top: 12px;
+      left: 16px;
+      right: 16px;
+      z-index: 10;
+      background: rgba(26, 27, 38, 0.94);
+      backdrop-filter: blur(8px);
+      border: 1px solid var(--border-light);
+      border-left: 4px solid var(--c-yellow);
+      border-radius: 8px;
+      padding: 9px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.45);
+    }
+    .step-banner-left {
+      display: flex;
+      align-items: baseline;
+      gap: 12px;
+    }
+    .step-num-badge {
+      font-family: var(--font-mono);
+      font-size: 0.9rem;
+      font-weight: 700;
+      color: var(--c-yellow);
+      letter-spacing: 0.05em;
+    }
+    .step-name {
+      font-size: 0.92rem;
+      font-weight: 600;
+      color: var(--text-white);
+    }
+    .step-rtl-formula {
+      font-family: var(--font-mono);
+      font-size: 0.88rem;
+      font-weight: 600;
+      color: var(--c-blue);
+      background: rgba(88, 196, 221, 0.08);
+      padding: 2px 8px;
+      border-radius: 4px;
+      border: 1px solid rgba(88, 196, 221, 0.2);
+    }
+    .step-progress-counter {
+      font-family: var(--font-mono);
+      font-size: 0.78rem;
+      color: var(--text-muted);
+    }
+
+    .svg-wrapper {
+      flex: 1;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding-top: 48px;
+    }
+
+    svg#datapath-svg {
+      width: 100%;
+      height: 100%;
+      max-height: 100%;
+    }
+
+    /* RIGHT SIDEBAR: EXPLICACIÓN Y TABLA DE MEMORIA EDITABLE */
+    .sidebar {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      overflow-y: auto;
+      min-height: 0;
+    }
+
+    .card {
+      background: var(--bg-panel);
+      border: 1px solid var(--border-base);
+      border-radius: 10px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .card-title {
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    /* Pizarra Didáctica */
+    .explanation-text {
+      font-size: 0.88rem;
+      line-height: 1.55;
+      color: var(--text-main);
+    }
+    .explanation-text strong {
+      color: var(--c-yellow);
+    }
+    .explanation-text code {
+      font-family: var(--font-mono);
+      color: var(--c-blue);
+      background: rgba(88, 196, 221, 0.08);
+      padding: 1px 4px;
+      border-radius: 3px;
+    }
+
+    .alu-status-box {
+      background: var(--bg-subpanel);
+      border: 1px solid var(--border-base);
+      border-radius: 6px;
+      padding: 10px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .alu-status-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 0.82rem;
+    }
+    .alu-status-row .lbl {
+      color: var(--text-muted);
+    }
+    .alu-status-row .val {
+      font-family: var(--font-mono);
+      font-weight: 600;
+      color: var(--c-blue);
+    }
+    .badge-flag {
+      font-family: var(--font-mono);
+      font-weight: 700;
+      font-size: 0.75rem;
+      padding: 2px 7px;
+      border-radius: 4px;
+      background: rgba(155, 89, 182, 0.15);
+      border: 1px solid rgba(155, 89, 182, 0.4);
+      color: var(--c-purple);
+    }
+    .badge-flag.flag-active {
+      background: rgba(46, 204, 113, 0.18);
+      border-color: var(--c-green);
+      color: var(--c-green);
+    }
+
+    /* Tabla de Memoria 256x8 Interactiva y Editable */
+    .mem-table-container {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-height: 220px;
+      max-height: 320px;
+      overflow: hidden;
+      border: 1px solid var(--border-base);
+      border-radius: 6px;
+      background: var(--bg-subpanel);
+    }
+    .mem-table-header {
+      display: grid;
+      grid-template-columns: 55px 70px 70px 1fr;
+      padding: 6px 10px;
+      background: rgba(255,255,255,0.03);
+      border-bottom: 1px solid var(--border-base);
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .mem-table-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 2px 0;
+    }
+    .mem-row {
+      display: grid;
+      grid-template-columns: 55px 70px 70px 1fr;
+      padding: 4px 10px;
+      align-items: center;
+      font-family: var(--font-mono);
+      font-size: 0.8rem;
+      border-bottom: 1px solid rgba(255,255,255,0.02);
+      transition: background 0.15s ease;
+    }
+    .mem-row:hover {
+      background: rgba(255,255,255,0.03);
+    }
+    .mem-row.current-pc {
+      background: rgba(244, 208, 63, 0.12);
+      border-left: 3px solid var(--c-yellow);
+    }
+    .mem-addr {
+      color: var(--text-muted);
+      font-weight: 600;
+    }
+    .mem-input {
+      background: transparent;
+      border: 1px solid transparent;
+      color: var(--text-white);
+      font-family: var(--font-mono);
+      font-size: 0.8rem;
+      padding: 2px 4px;
+      width: 50px;
+      border-radius: 3px;
+      outline: none;
+    }
+    .mem-input:focus {
+      border-color: var(--c-blue);
+      background: var(--bg-card);
+    }
+    .mem-desc {
+      font-family: var(--font-sans);
+      font-size: 0.72rem;
+      color: var(--text-dim);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* FOOTER */
+    footer {
+      background: var(--bg-panel);
+      border-top: 1px solid var(--border-base);
+      padding: 6px 20px;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0;
+    }
+
+    /* ==========================================================================
+       SVG STYLING (3b1b Aesthetic: Datapath 74181)
+       ========================================================================== */
+    .bus-wire {
+      stroke: #474b69;
+      stroke-width: 3.5;
+      fill: none;
+      stroke-linecap: square;
+      stroke-linejoin: miter;
+    }
+    .bus-wire-thin {
+      stroke: #3c405a;
+      stroke-width: 2;
+      fill: none;
+      stroke-linecap: square;
+      stroke-linejoin: miter;
+    }
+    .bus-double-arrow {
+      stroke: #474b69;
+      stroke-width: 1.5;
+      fill: #151622;
+      stroke-linejoin: miter;
+      stroke-linecap: square;
+    }
+
+    /* Cajas de Registros */
+    .reg-rect {
+      fill: #161722;
+      stroke: #414561;
+      stroke-width: 1.5;
+      rx: 4;
+      transition: all 0.25s ease;
+    }
+    .reg-rect.active-write {
+      stroke: var(--c-yellow);
+      stroke-width: 2.5;
+      fill: #24241a;
+      filter: drop-shadow(0 0 10px rgba(244, 208, 63, 0.5));
+    }
+    .reg-rect.active-read {
+      stroke: var(--c-blue);
+      stroke-width: 2.5;
+      fill: #14222b;
+      filter: drop-shadow(0 0 10px rgba(88, 196, 221, 0.5));
+    }
+
+    /* Símbolo esquemático trapezoidal de la ALU 74181 */
+    .alu-body {
+      fill: #151622;
+      stroke: #484d6e;
+      stroke-width: 2;
+      transition: all 0.25s ease;
+    }
+    .alu-body.active {
+      stroke: var(--c-yellow);
+      stroke-width: 2.5;
+      fill: #242319;
+      filter: drop-shadow(0 0 14px rgba(244, 208, 63, 0.5));
+    }
+
+    /* Textos dentro del SVG */
+    .svg-title {
+      font-family: var(--font-sans);
+      font-size: 13px;
+      font-style: italic;
+      font-weight: 600;
+      fill: #f1f5f9;
+      text-anchor: middle;
+      dominant-baseline: central;
+    }
+    .svg-sub {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      fill: #8b92b0;
+      text-anchor: middle;
+      dominant-baseline: central;
+    }
+    .svg-reg-val {
+      font-family: var(--font-mono);
+      font-size: 15px;
+      font-weight: 700;
+      fill: var(--c-yellow);
+      text-anchor: middle;
+      dominant-baseline: central;
+      letter-spacing: 0.08em;
+      transition: fill 0.2s ease;
+    }
+    .svg-reg-val.is-read {
+      fill: var(--c-blue);
+    }
+    .svg-reg-val.is-idle {
+      fill: #94a3b8;
+    }
+    .svg-bus-lbl {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-style: italic;
+      font-weight: 600;
+      fill: #6d7596;
+      dominant-baseline: central;
+    }
+    .svg-pin-lbl {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      font-weight: 600;
+      fill: #a0aec0;
+      dominant-baseline: central;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- TOP HEADER -->
+  <header>
+    <div class="brand-title">
+      <span>CPU Elemental 74181</span>
+      <span class="brand-badge">Arquitectura de 4 Bits</span>
+      <a href="index.html" class="nav-link-btn" title="Volver al simulador del computador SIC 18-Bits">➔ Ir a SIC 18-Bits</a>
+    </div>
+
+    <!-- Selector de Ejemplos Predefinidos (Sin mnemónicos para enfocarse en bajo nivel) -->
+    <div class="selector-group">
+      <span class="selector-lbl">Ejemplo:</span>
+      <button class="btn-preset active" data-preset="0">1: Aritmética (S=9 Suma, S=6 Resta)</button>
+      <button class="btn-preset" data-preset="1">2: Comparación (S=6 Mag: =, &lt;, &gt;)</button>
+      <button class="btn-preset" data-preset="2">3: Lógica (S=B AND, S=6 XOR)</button>
+      <button class="btn-preset" data-preset="3">4: Vacío (Todo en 0)</button>
+    </div>
+
+    <!-- Botones de Control de Navegación -->
+    <div class="playback-group">
+      <button id="btn-reset" class="btn-ctrl" title="Volver al inicio del programa">⏮ Reiniciar</button>
+      <button id="btn-prev" class="btn-ctrl" title="Etapa anterior">◀ Anterior</button>
+      <button id="btn-next" class="btn-ctrl btn-primary" title="Siguiente etapa">Siguiente ▶</button>
+      <button id="btn-auto" class="btn-ctrl" title="Reproducir programa automáticamente">▶ Play Auto</button>
+    </div>
+  </header>
+
+  <!-- MAIN VIEWPORT -->
+  <main>
+    <!-- LIENZO DE DATAPATH -->
+    <div class="datapath-container">
+      <!-- Banner flotante superior en el canvas con el Paso activo -->
+      <div class="step-banner">
+        <div class="step-banner-left">
+          <span class="step-num-badge" id="banner-step-num">PASO 1</span>
+          <span class="step-name" id="banner-step-name">Fetch de Instrucción</span>
+          <span class="step-rtl-formula" id="banner-step-rtl">IR &larr; M[PC]₇:₄ ; MD &larr; M[PC]₃:₀ ; PC &larr; PC + 1</span>
+        </div>
+        <div class="step-progress-counter" id="banner-step-counter">Instrucción 0 / 16</div>
+      </div>
+
+      <!-- Canvas SVG: Datapath fiel al boceto del usuario -->
+      <div class="svg-wrapper">
+        <svg id="datapath-svg" viewBox="0 0 760 620" preserveAspectRatio="xMidYMid meet">
+          <defs>
+            <!-- Marcadores de flechas para buses estilo diagrama de bloques -->
+            <marker id="arrow-down" viewBox="0 0 10 10" refX="5" refY="8" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+              <path d="M 0 0 L 10 0 L 5 8 z" fill="#58c4dd" />
+            </marker>
+          </defs>
+
+          <!-- ========================================================
+               1. REGISTRO PC (8) (Arriba a la izquierda)
+               ======================================================== -->
+          <g id="node-pc" transform="translate(60, 20)">
+            <rect class="reg-rect" width="130" height="52" />
+            <text x="65" y="19" class="svg-title">PC (8)</text>
+            <text x="65" y="38" class="svg-reg-val" id="svg-val-pc">00</text>
+          </g>
+
+          <!-- Flecha ancha hueca: PC -> M (vertical hacia abajo) -->
+          <!-- x centro = 125, y = 72 a 125 -->
+          <polygon class="bus-double-arrow" points="117,72 133,72 133,105 142,105 125,123 108,105 117,105" />
+
+          <!-- ========================================================
+               2. MEMORIA M (256 x 8)
+               ======================================================== -->
+          <g id="node-m" transform="translate(60, 125)">
+            <rect class="reg-rect" width="220" height="75" />
+            <text x="110" y="24" class="svg-title" style="font-size: 16px;">M</text>
+            <text x="110" y="44" class="svg-sub" style="font-size: 12px;">256 &times; 8</text>
+            <text x="110" y="62" class="svg-sub" id="svg-mem-word" style="fill: var(--c-yellow); font-family: var(--font-mono); font-size: 13px;">0x00</text>
+          </g>
+
+          <!-- ========================================================
+               3. BUS DE DATOS CONTINUO DESDE M (256x8) BIFURCADO A IR Y MD
+               Una sola estructura continua:
+               - Tronco 0:7 sale del borde inferior de M (y=200)
+               - Se bifurca en:
+                 1) Rama 0:3 que baja vertical hasta la cara superior de IR(4) (y=410)
+                 2) Rama 4:7 que sale a la derecha y baja a la cara superior de MD(4) (y=310)
+               ======================================================== -->
+          <path class="bus-double-arrow" d="
+            M 160 200
+            L 160 248
+            L 133 248
+            L 133 392
+            L 142 392
+            L 125 410
+            L 108 392
+            L 117 392
+            L 117 232
+            L 176 232
+            L 282 232
+            L 282 292
+            L 273 292
+            L 290 310
+            L 307 292
+            L 298 292
+            L 298 248
+            L 176 248
+            L 176 200
+            Z
+          " />
+
+          <!-- Etiquetas de los buses -->
+          <text x="186" y="218" class="svg-bus-lbl">0:7</text>
+          <text x="142" y="320" class="svg-bus-lbl">0:3</text>
+          <text x="236" y="224" class="svg-bus-lbl">4:7</text>
+
+          <!-- ========================================================
+               4. REGISTRO IR (4) (Abajo a la izquierda)
+               ======================================================== -->
+          <!-- Posición: x=60, y=410, centrado con la ALU (y=410) -->
+          <g id="node-ir" transform="translate(60, 410)">
+            <rect class="reg-rect" width="130" height="70" />
+            <text x="65" y="26" class="svg-title">IR (4)</text>
+            <text x="65" y="49" class="svg-reg-val" id="svg-val-ir">9</text>
+          </g>
+
+          <!-- 4 Líneas horizontales directas y limpias de IR hacia la ALU (S3..S0) -->
+          <!-- Desde x=190 hasta x=330, sin cruzarse con MD ni con flechas -->
+          <line x1="190" y1="428" x2="330" y2="428" stroke="#58c4dd" stroke-width="2" />
+          <line x1="190" y1="440" x2="330" y2="440" stroke="#58c4dd" stroke-width="2" />
+          <line x1="190" y1="452" x2="330" y2="452" stroke="#58c4dd" stroke-width="2" />
+          <line x1="190" y1="464" x2="330" y2="464" stroke="#58c4dd" stroke-width="2" />
+          <text x="260" y="418" class="svg-bus-lbl" style="fill: var(--c-orange); font-size: 11px; text-anchor: middle;">S₃..S₀</text>
+
+          <!-- ========================================================
+               5. REGISTROS MD (4) Y AC (4) (Al medio y derecha)
+               ======================================================== -->
+          <!-- MD (4) (x=240, y=310) -->
+          <g id="node-md" transform="translate(240, 310)">
+            <rect class="reg-rect" width="115" height="50" />
+            <text x="57" y="18" class="svg-title">MD (4)</text>
+            <text x="57" y="36" class="svg-reg-val" id="svg-val-md">3</text>
+          </g>
+
+          <!-- AC (4) (x=415, y=310) -->
+          <g id="node-ac" transform="translate(415, 310)">
+            <rect class="reg-rect" width="115" height="50" />
+            <text x="57" y="18" class="svg-title">AC (4)</text>
+            <text x="57" y="36" class="svg-reg-val" id="svg-val-ac">0</text>
+          </g>
+
+          <!-- Flecha de MD (4) hacia entrada de la ALU (hacia abajo): sale de base de MD en x=305, y=360 y llega a ALU en y=410 -->
+          <polygon class="bus-double-arrow" points="360,360 376,360 376,392 385,392 368,410 351,392 360,392" />
+
+          <!-- Flecha de AC (4) hacia entrada de la ALU (hacia abajo): sale de base de AC en y=360 y llega a ALU en y=410 -->
+          <polygon class="bus-double-arrow" points="435,360 451,360 451,392 460,392 443,410 426,392 435,392" />
+
+          <!-- ========================================================
+               6. ALU 74LS181 (Caja rectangular según el boceto)
+               ======================================================== -->
+          <g id="node-alu" transform="translate(330, 410)">
+            <rect class="alu-body" width="170" height="75" rx="4" />
+            <text x="85" y="24" class="svg-title" style="font-size: 15px; font-weight: 700;">ALU</text>
+            <text x="85" y="42" class="svg-title" style="font-size: 14px; font-weight: 600; fill: #cbd5e1;">74LS181</text>
+            <text x="85" y="60" class="svg-sub" id="svg-alu-formula" style="fill: var(--c-yellow); font-size: 11px;">F = A + B</text>
+          </g>
+
+          <!-- Entradas M y Cn discretas en lateral derecho de la ALU -->
+          <text x="508" y="465" class="svg-pin-lbl" id="svg-lbl-mode">M=0</text>
+          <text x="508" y="478" class="svg-pin-lbl" id="svg-lbl-cn">Cn=1</text>
+
+          <!-- Flags discretas abajo de la ALU -->
+          <text x="270" y="492" class="svg-pin-lbl" id="svg-flag-eq" style="fill: var(--c-purple);">A=B: 0</text>
+          <text x="270" y="505" class="svg-pin-lbl" id="svg-flag-carry" style="fill: var(--c-red);">Cn+4: 0</text>
+
+          <!-- ========================================================
+               7. RETORNO DE SALIDA: FLECHA DE REALIMENTACIÓN CONTINUA (ALU -> Z -> AC)
+               Polígono continuo de una sola pieza que rodea la ALU hacia AC
+               ======================================================== -->
+          <!--
+            Trayectoria del contorno continuo:
+            - Sale de la base de la ALU en x=415, baja a y=530
+            - Dobla a la derecha hacia x=620
+            - Sube vertical por el canal Z hasta y=225
+            - Dobla a la izquierda hacia x=472
+            - Baja como punta de flecha entrando en la parte superior de AC (y=308)
+          -->
+          <path class="bus-double-arrow" d="
+            M 405 485
+            L 405 520
+            L 595 520
+            L 595 240
+            L 480 240
+            L 480 288
+            L 489 288
+            L 472 308
+            L 455 288
+            L 464 288
+            L 464 224
+            L 611 224
+            L 611 536
+            L 421 536
+            L 421 485
+            Z
+          " />
+          <text x="603" y="380" class="svg-bus-lbl" style="font-size: 16px; font-weight: 700; fill: var(--c-yellow); text-anchor: middle;">Z</text>
+
+        </svg>
+      </div>
+    </div>
+
+    <!-- PANEL LATERAL: PIZARRA DE CONTROL Y MEMORIA 256x8 EDITABLE -->
+    <div class="sidebar">
+      
+      <!-- Card: Pizarra de Operación y Estado de la ALU -->
+      <div class="card">
+        <div class="card-title">
+          <span>Pizarra de Operación</span>
+          <span style="color: var(--c-yellow);" id="lbl-step-phase">Paso 1: Fetch</span>
+        </div>
+
+        <div class="explanation-text" id="desc-explanation">
+          Se lee la celda de memoria apuntada por <strong>PC</strong>. El cuarteto alto (D₇:₄) se carga en <strong>IR</strong> (selectores de función S₃..S₀) y el cuarteto bajo (D₃:₀) en <strong>MD</strong> (operando inmediato).
+        </div>
+
+        <!-- Estado de la ALU 74181 y Banderas -->
+        <div class="alu-status-box">
+          <div class="alu-status-row">
+            <span class="lbl">Selectores S₃ S₂ S₁ S₀:</span>
+            <span class="val" id="val-s-bits">1 0 0 1 (Hex: 9)</span>
+          </div>
+          <div class="alu-status-row">
+            <span class="lbl">Modo M / Acarreo Cn:</span>
+            <span class="val" id="val-m-cn">M=0 (Aritmético), Cn=1 (+0)</span>
+          </div>
+          <div class="alu-status-row">
+            <span class="lbl">Operación 74181:</span>
+            <span class="val" style="color: var(--c-yellow);" id="val-alu-op">F = A + B</span>
+          </div>
+          <div class="alu-status-row" style="margin-top: 4px; padding-top: 4px; border-top: 1px dashed var(--border-base);">
+            <span class="lbl">Banderas de Salida:</span>
+            <div style="display: flex; gap: 6px;">
+              <span class="badge-flag" id="badge-eq">A = B</span>
+              <span class="badge-flag" id="badge-carry">Cn+4 (Carry)</span>
+              <span class="badge-flag" id="badge-lt">A &lt; B</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Card: Tabla de Memoria 256x8 Interactiva y Editable -->
+      <div class="card" style="flex: 1; min-height: 0;">
+        <div class="card-title">
+          <span>Memoria de Programa M[256 &times; 8]</span>
+          <span style="font-size: 0.72rem; color: var(--text-muted);">Haz clic para editar bytes</span>
+        </div>
+
+        <div class="mem-table-container">
+          <div class="mem-table-header">
+            <span>Direc.</span>
+            <span>IR (S)</span>
+            <span>MD (B)</span>
+            <span>Operación 74181</span>
+          </div>
+          <div class="mem-table-body" id="mem-table-body">
+            <!-- Filas de memoria generadas dinámicamente -->
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- FOOTER -->
+  <footer>
+    <span>ETN-821: Sistemas Digitales II &bull; Procesador Elemental Basado en SN74181</span>
+    <span>4 Bits &bull; Sin mnemónicos de alto nivel (Control directo S₃..S₀) &bull; Memoria M[256&times;8]</span>
+  </footer>
+
+  <!-- ==========================================================================
+       LÓGICA INTERACTIVA DEL SIMULADOR 74181
+       ========================================================================== -->
+  <script>
+    // TABLA EXACTA DE FUNCIONES DEL 74181 (Lógica positiva, M=0 Aritmético con Cn=1 y Cn=0, M=1 Lógico)
+    const ALU_74181_OPERATIONS = {
+      arith_cn1: { // M=0, Cn=1 (Sin acarreo de entrada, +0)
+        0x0: { op: "F = A", desc: "Transferir A a la salida" },
+        0x1: { op: "F = A + B", desc: "OR lógico como base de suma" },
+        0x2: { op: "F = A + NOT(B)", desc: "Suma con inverso de B" },
+        0x3: { op: "F = -1 (0xF)", desc: "Genera 0xF (-1)" },
+        0x4: { op: "F = A + (A & NOT B)", desc: "Aritmética compuesta" },
+        0x5: { op: "F = (A | B) + (A & NOT B)", desc: "Aritmética compuesta" },
+        0x6: { op: "F = A - B - 1", desc: "Resta con préstamo (útil para comparación)" },
+        0x7: { op: "F = (A & NOT B) - 1", desc: "Enmascaramiento y decremento" },
+        0x8: { op: "F = A + (A & B)", desc: "Aritmética compuesta" },
+        0x9: { op: "F = A + B", desc: "Suma aritmética binaria estándar" },
+        0xA: { op: "F = (A | NOT B) + (A & B)", desc: "Aritmética compuesta" },
+        0xB: { op: "F = (A & B) - 1", desc: "AND menos 1" },
+        0xC: { op: "F = A + A", desc: "Multiplicar por 2 (Shift Left)" },
+        0xD: { op: "F = (A | B) + A", desc: "Aritmética compuesta" },
+        0xE: { op: "F = (A | NOT B) + A", desc: "Aritmética compuesta" },
+        0xF: { op: "F = A - 1", desc: "Decrementar A en 1" }
+      },
+      arith_cn0: { // M=0, Cn=0 (Con acarreo de entrada, +1)
+        0x0: { op: "F = A + 1", desc: "Incrementar A en 1" },
+        0x1: { op: "F = (A | B) + 1", desc: "OR más 1" },
+        0x2: { op: "F = (A | NOT B) + 1", desc: "Suma con inverso más 1" },
+        0x3: { op: "F = 0", desc: "Limpiar acumulador a 0" },
+        0x4: { op: "F = A + (A & NOT B) + 1", desc: "Aritmética compuesta" },
+        0x5: { op: "F = (A | B) + (A & NOT B) + 1", desc: "Aritmética compuesta" },
+        0x6: { op: "F = A - B", desc: "Resta aritmética exacta (Complemento a 2)" },
+        0x7: { op: "F = (A & NOT B)", desc: "Transferir máscara" },
+        0x8: { op: "F = A + (A & B) + 1", desc: "Aritmética compuesta" },
+        0x9: { op: "F = A + B + 1", desc: "Suma con acarreo" },
+        0xA: { op: "F = (A | NOT B) + (A & B) + 1", desc: "Aritmética compuesta" },
+        0xB: { op: "F = A & B", desc: "AND directo" },
+        0xC: { op: "F = A + A + 1", desc: "2A + 1" },
+        0xD: { op: "F = (A | B) + A + 1", desc: "Aritmética compuesta" },
+        0xE: { op: "F = (A | NOT B) + A + 1", desc: "Aritmética compuesta" },
+        0xF: { op: "F = A", desc: "Transferir A" }
+      },
+      logic: { // M=1 (Operaciones lógicas bit a bit)
+        0x0: { op: "F = NOT(A)", desc: "Invertir bits de A" },
+        0x1: { op: "F = NOT(A | B)", desc: "NOR lógico" },
+        0x2: { op: "F = NOT(A) & B", desc: "Inverso de A AND B" },
+        0x3: { op: "F = 0", desc: "Limpiar a 0" },
+        0x4: { op: "F = NOT(A & B)", desc: "NAND lógico" },
+        0x5: { op: "F = NOT(B)", desc: "Invertir bits del operando B" },
+        0x6: { op: "F = A ^ B", desc: "XOR (OR exclusivo)" },
+        0x7: { op: "F = A & NOT(B)", desc: "A AND NOT B" },
+        0x8: { op: "F = NOT(A) | B", desc: "NOT A OR B" },
+        0x9: { op: "F = NOT(A ^ B)", desc: "XNOR (Equivalencia)" },
+        0xA: { op: "F = B", desc: "Cargar operando B directamente" },
+        0xB: { op: "F = A & B", desc: "AND lógico estándar" },
+        0xC: { op: "F = 0xF", desc: "Cargar todos unos (0xF)" },
+        0xD: { op: "F = A | NOT(B)", desc: "A OR NOT B" },
+        0xE: { op: "F = A | B", desc: "OR lógico estándar" },
+        0xF: { op: "F = A", desc: "Mantener A sin cambios" }
+      }
+    };
+
+    // PROGRAMAS PREDEFINIDOS (SIN MNEMÓNICOS, PUROS VALORES HEX D₇:₄ Y D₃:₀)
+    const PRESETS = [
+      {
+        name: "Aritmética Elemental (S=0xA Cargar, S=0x9 Sumar, S=0x6 Restar)",
+        bytes: [
+          { s: 0xA, b: 0x5, m: 1, desc: "Poner B en AC (Cargar 5)" },
+          { s: 0x9, b: 0x3, m: 0, cn: 1, desc: "A + B: Sumar 3 -> AC=8" },
+          { s: 0x6, b: 0x2, m: 0, cn: 0, desc: "A - B: Restar 2 -> AC=6" },
+          { s: 0xC, b: 0x0, m: 0, cn: 1, desc: "A + A: Multiplicar x2 -> AC=12 (0xC)" },
+          { s: 0xF, b: 0x0, m: 0, cn: 1, desc: "A - 1: Decrementar 1 -> AC=11 (0xB)" },
+          { s: 0xF, b: 0x0, m: 1, desc: "Mantener AC (Reposo)" }
+        ]
+      },
+      {
+        name: "Comparación de Magnitudes (S=0x6 con resta A - B)",
+        bytes: [
+          { s: 0xA, b: 0x7, m: 1, desc: "Cargar 7 en AC" },
+          { s: 0x6, b: 0x7, m: 0, cn: 0, desc: "Comparar con 7: A=B activa flag A=B" },
+          { s: 0x6, b: 0x9, m: 0, cn: 0, desc: "Comparar con 9: A < B activa Borrow" },
+          { s: 0x6, b: 0x4, m: 0, cn: 0, desc: "Comparar con 4: A > B" },
+          { s: 0xF, b: 0x0, m: 1, desc: "Mantener AC (Reposo)" }
+        ]
+      },
+      {
+        name: "Lógica Bit a Bit (S=0xB AND, S=0x6 XOR, S=0xE OR)",
+        bytes: [
+          { s: 0xA, b: 0xF, m: 1, desc: "Cargar 0xF (1111) en AC" },
+          { s: 0xB, b: 0xA, m: 1, desc: "AND con 0xA (1010) -> AC=0xA" },
+          { s: 0x6, b: 0x3, m: 1, desc: "XOR con 0x3 (0011) -> AC=0x9" },
+          { s: 0xE, b: 0x4, m: 1, desc: "OR con 0x4 (0100) -> AC=0xD" },
+          { s: 0x0, b: 0x0, m: 1, desc: "NOT AC -> Invertir todos los bits" }
+        ]
+      },
+      {
+        name: "Programa Vacío (Todo en cero para edición libre)",
+        bytes: [
+          { s: 0x0, b: 0x0, m: 0, cn: 1, desc: "S=0, B=0 (F = A)" }
+        ]
+      }
+    ];
+
+    // MEMORIA DE 256 BYTES
+    let memory = new Array(256).fill(null).map(() => ({ s: 0xF, b: 0x0, m: 1, cn: 1, desc: "NOP" }));
+
+    // ESTADO DEL PROCESADOR
+    let pc = 0;
+    let ac = 0;
+    let ir = 0xF;
+    let md = 0x0;
+    let currentStep = 1; // 1: Fetch, 2: Execute
+    let autoInterval = null;
+
+    // ELEMENTOS DOM
+    const bannerStepNum = document.getElementById("banner-step-num");
+    const bannerStepName = document.getElementById("banner-step-name");
+    const bannerStepRtl = document.getElementById("banner-step-rtl");
+    const bannerStepCounter = document.getElementById("banner-step-counter");
+
+    const svgValPc = document.getElementById("svg-val-pc");
+    const svgValIr = document.getElementById("svg-val-ir");
+    const svgValMd = document.getElementById("svg-val-md");
+    const svgValAc = document.getElementById("svg-val-ac");
+    const svgMemWord = document.getElementById("svg-mem-word");
+    const svgAluFormula = document.getElementById("svg-alu-formula");
+    const svgLblMode = document.getElementById("svg-lbl-mode");
+    const svgLblCn = document.getElementById("svg-lbl-cn");
+    const svgFlagEq = document.getElementById("svg-flag-eq");
+    const svgFlagCarry = document.getElementById("svg-flag-carry");
+
+    const descExplanation = document.getElementById("desc-explanation");
+    const lblStepPhase = document.getElementById("lbl-step-phase");
+    const valSBits = document.getElementById("val-s-bits");
+    const valMCn = document.getElementById("val-m-cn");
+    const valAluOp = document.getElementById("val-alu-op");
+    const badgeEq = document.getElementById("badge-eq");
+    const badgeCarry = document.getElementById("badge-carry");
+    const badgeLt = document.getElementById("badge-lt");
+    const memTableBody = document.getElementById("mem-table-body");
+
+    const btnPrev = document.getElementById("btn-prev");
+    const btnNext = document.getElementById("btn-next");
+    const btnReset = document.getElementById("btn-reset");
+    const btnAuto = document.getElementById("btn-auto");
+
+    // CARGAR UN PRESET EN MEMORIA
+    function loadPreset(idx) {
+      document.querySelectorAll(".btn-preset").forEach((b, i) => b.classList.toggle("active", i === idx));
+      
+      if (idx === 3) {
+        // Preset Vacío: Toda la memoria en 0x00 y registros en 0
+        memory = new Array(256).fill(null).map(() => ({ s: 0x0, b: 0x0, m: 0, cn: 1, desc: "F = A" }));
+      } else {
+        // Limpiar memoria con NOP por defecto
+        memory = new Array(256).fill(null).map(() => ({ s: 0xF, b: 0x0, m: 1, cn: 1, desc: "S=F (Sin cambio)" }));
+        
+        // Cargar bytes del preset seleccionado
+        const pr = PRESETS[idx];
+        pr.bytes.forEach((byte, i) => {
+          memory[i] = {
+            s: byte.s,
+            b: byte.b,
+            m: byte.m !== undefined ? byte.m : 0,
+            cn: byte.cn !== undefined ? byte.cn : 1,
+            desc: byte.desc || ""
+          };
+        });
+      }
+
+      resetCpu();
+      buildMemTable();
+      renderStep();
+    }
+
+    // REINICIAR CPU
+    function resetCpu() {
+      pc = 0;
+      ac = 0;
+      ir = memory[0].s;
+      md = memory[0].b;
+      currentStep = 1;
+    }
+
+    // CONSTRUIR TABLA DE MEMORIA INTERACTIVA (Primeras 24 posiciones visibles)
+    function buildMemTable() {
+      memTableBody.innerHTML = "";
+      for (let i = 0; i < 24; i++) {
+        const row = document.createElement("div");
+        row.className = `mem-row ${i === pc ? "current-pc" : ""}`;
+        row.id = `mem-row-${i}`;
+
+        const sHex = memory[i].s.toString(16).toUpperCase();
+        const bHex = memory[i].b.toString(16).toUpperCase();
+
+        row.innerHTML = `
+          <span class="mem-addr">${i.toString(16).padStart(2, '0').toUpperCase()}</span>
+          <input class="mem-input" type="text" maxlength="1" value="${sHex}" data-addr="${i}" data-field="s" title="Selectores S3..S0 (Hex 0..F)">
+          <input class="mem-input" type="text" maxlength="1" value="${bHex}" data-addr="${i}" data-field="b" title="Operando B (Hex 0..F)">
+          <span class="mem-desc" title="${memory[i].desc}">${memory[i].desc}</span>
+        `;
+        memTableBody.appendChild(row);
+      }
+
+      // Eventos de edición de memoria en tiempo real
+      memTableBody.querySelectorAll(".mem-input").forEach(input => {
+        input.addEventListener("change", (e) => {
+          const addr = parseInt(e.target.dataset.addr);
+          const field = e.target.dataset.field;
+          const val = parseInt(e.target.value, 16);
+          if (!isNaN(val) && val >= 0 && val <= 15) {
+            memory[addr][field] = val;
+            e.target.value = val.toString(16).toUpperCase();
+            // Actualizar descripción
+            const opInfo = getAluOperationInfo(memory[addr].s, memory[addr].m, memory[addr].cn);
+            memory[addr].desc = opInfo.op;
+            document.querySelector(`#mem-row-${addr} .mem-desc`).textContent = opInfo.op;
+            renderStep();
+          } else {
+            e.target.value = memory[addr][field].toString(16).toUpperCase();
+          }
+        });
+      });
+    }
+
+    // CALCULAR OPERACIÓN DEL 74181
+    function getAluOperationInfo(s, m, cn) {
+      if (m === 1) {
+        return ALU_74181_OPERATIONS.logic[s] || { op: `Lógica S=${s.toString(16)}`, desc: "" };
+      } else {
+        if (cn === 0) {
+          return ALU_74181_OPERATIONS.arith_cn0[s] || { op: `Aritmética S=${s.toString(16)} (+1)`, desc: "" };
+        } else {
+          return ALU_74181_OPERATIONS.arith_cn1[s] || { op: `Aritmética S=${s.toString(16)} (+0)`, desc: "" };
+        }
+      }
+    }
+
+    // EJECUCIÓN MATEMÁTICA REAL DE LA ALU 74181
+    function executeAlu74181(a, b, s, m, cn) {
+      let f = 0;
+      let carryOut = 0;
+      let eq = (a === b) ? 1 : 0;
+      let lt = (a < b) ? 1 : 0;
+
+      if (m === 1) { // Modo Lógico
+        switch (s) {
+          case 0x0: f = ~a; break;
+          case 0x1: f = ~(a | b); break;
+          case 0x2: f = (~a) & b; break;
+          case 0x3: f = 0; break;
+          case 0x4: f = ~(a & b); break;
+          case 0x5: f = ~b; break;
+          case 0x6: f = a ^ b; break;
+          case 0x7: f = a & (~b); break;
+          case 0x8: f = (~a) | b; break;
+          case 0x9: f = ~(a ^ b); break;
+          case 0xA: f = b; break;
+          case 0xB: f = a & b; break;
+          case 0xC: f = 0xF; break;
+          case 0xD: f = a | (~b); break;
+          case 0xE: f = a | b; break;
+          case 0xF: f = a; break;
+        }
+      } else { // Modo Aritmético
+        const cin = (cn === 0) ? 1 : 0;
+        if (cn === 0) {
+          switch (s) {
+            case 0x0: f = a + 1; break;
+            case 0x6: f = a - b; break; // Resta exacta
+            case 0x9: f = a + b + 1; break;
+            case 0xB: f = a & b; break;
+            case 0xC: f = a + a + 1; break;
+            case 0xF: f = a; break;
+            default: f = a + b + cin; break;
+          }
+        } else {
+          switch (s) {
+            case 0x0: f = a; break;
+            case 0x3: f = 0xF; break;
+            case 0x6: f = a - b - 1; break;
+            case 0x9: f = a + b; break;
+            case 0xC: f = a + a; break;
+            case 0xF: f = a - 1; break;
+            default: f = a + b; break;
+          }
+        }
+        carryOut = (f > 15 || f < 0) ? 1 : 0;
+      }
+
+      f = f & 0xF; // 4 bits
+      return { f, carryOut, eq, lt };
+    }
+
+    // RENDERIZAR ESTADO ACTUAL
+    function renderStep() {
+      const curCell = memory[pc];
+      const s = curCell.s;
+      const b = curCell.b;
+      const m = curCell.m !== undefined ? curCell.m : 0;
+      const cn = curCell.cn !== undefined ? curCell.cn : 1;
+
+      // Actualizar valores de registros en el diagrama
+      svgValPc.textContent = pc.toString(16).padStart(2, '0').toUpperCase();
+      svgMemWord.textContent = `0x${s.toString(16).toUpperCase()}${b.toString(16).toUpperCase()}`;
+
+      // Reset de clases de iluminación
+      document.querySelectorAll(".reg-rect").forEach(el => el.classList.remove("active-read", "active-write"));
+      document.querySelector(".alu-body").classList.remove("active");
+
+      const opInfo = getAluOperationInfo(s, m, cn);
+      const res = executeAlu74181(ac, b, s, m, cn);
+
+      if (currentStep === 1) {
+        // PASO 1: FETCH
+        bannerStepNum.textContent = "PASO 1";
+        bannerStepName.textContent = "Fetch de Instrucción";
+        bannerStepRtl.innerHTML = "IR ← M[PC]₇:₄ ; MD ← M[PC]₃:₀ ; PC ← PC + 1";
+        lblStepPhase.textContent = "Paso 1: Fetch";
+        descExplanation.innerHTML = `El procesador extrae el byte de la posición <strong>0x${pc.toString(16).padStart(2, '0').toUpperCase()}</strong>. Los 4 bits altos <code>S=${s.toString(16).toUpperCase()}</code> se transfieren a <strong>IR</strong> y los 4 bits bajos <code>B=${b.toString(16).toUpperCase()}</code> a <strong>MD</strong>.`;
+
+        // Iluminar PC, Memoria, IR y MD
+        document.querySelector("#node-pc rect").classList.add("active-read");
+        document.querySelector("#node-m rect").classList.add("active-read");
+        document.querySelector("#node-ir rect").classList.add("active-write");
+        document.querySelector("#node-md rect").classList.add("active-write");
+
+        svgValIr.textContent = s.toString(16).toUpperCase();
+        svgValMd.textContent = b.toString(16).toUpperCase();
+        svgValAc.textContent = ac.toString(16).toUpperCase();
+
+        btnNext.textContent = "Ejecutar en ALU (Paso 2) ▶";
+      } else {
+        // PASO 2: EXECUTE
+        bannerStepNum.textContent = "PASO 2";
+        bannerStepName.textContent = "Ejecución en ALU 74181";
+        bannerStepRtl.innerHTML = `AC ← ALU(AC=${ac.toString(16).toUpperCase()}, MD=${b.toString(16).toUpperCase()}, S=${s.toString(16).toUpperCase()})`;
+        lblStepPhase.textContent = "Paso 2: Execute";
+        descExplanation.innerHTML = `La ALU procesa la entrada <strong>A (AC=${ac.toString(16).toUpperCase()})</strong> y la entrada <strong>B (MD=${b.toString(16).toUpperCase()})</strong> bajo la operación seleccionada <code>${opInfo.op}</code>. El resultado <strong>${res.f.toString(16).toUpperCase()}</strong> se almacena en el acumulador <strong>AC</strong>.`;
+
+        // Iluminar Entradas, ALU y Acumulador
+        document.querySelector("#node-ac rect").classList.add("active-write");
+        document.querySelector(".alu-body").classList.add("active");
+
+        svgValAc.textContent = res.f.toString(16).toUpperCase();
+        ac = res.f; // Actualizar AC
+
+        btnNext.textContent = "Siguiente Instrucción (Fetch) ▶";
+      }
+
+      // Información de selectores y banderas
+      valSBits.textContent = `${(s & 8 ? 1:0)} ${(s & 4 ? 1:0)} ${(s & 2 ? 1:0)} ${(s & 1 ? 1:0)} (Hex: ${s.toString(16).toUpperCase()})`;
+      valMCn.textContent = `M=${m} (${m === 1 ? 'Lógico' : 'Aritmético'}), Cn=${cn} (${cn === 0 ? '+1' : '+0'})`;
+      valAluOp.textContent = opInfo.op;
+      svgAluFormula.textContent = opInfo.op;
+      svgLblMode.textContent = `M = ${m} (${m === 1 ? 'Lógico' : 'Aritmético'})`;
+      svgLblCn.textContent = `Cn = ${cn} (${cn === 0 ? '+1' : '+0'})`;
+
+      // Banderas de salida en pantalla y en SVG
+      svgFlagEq.textContent = `A = B : ${res.eq}`;
+      svgFlagCarry.textContent = `Cn+4 : ${res.carryOut}`;
+      badgeEq.className = `badge-flag ${res.eq ? 'flag-active' : ''}`;
+      badgeCarry.className = `badge-flag ${res.carryOut ? 'flag-active' : ''}`;
+      badgeLt.className = `badge-flag ${res.lt ? 'flag-active' : ''}`;
+
+      bannerStepCounter.textContent = `Instrucción ${pc} / 256`;
+
+      // Resaltar fila actual en tabla de memoria
+      document.querySelectorAll(".mem-row").forEach((r, idx) => {
+        r.classList.toggle("current-pc", idx === pc);
+      });
+      const activeRow = document.getElementById(`mem-row-${pc}`);
+      if (activeRow) activeRow.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+
+    // AVANZAR UN PASO
+    function advance() {
+      if (currentStep === 1) {
+        currentStep = 2;
+      } else {
+        currentStep = 1;
+        pc = (pc + 1) % 256;
+      }
+      renderStep();
+    }
+
+    // RETROCEDER UN PASO
+    function stepBack() {
+      if (currentStep === 2) {
+        currentStep = 1;
+      } else {
+        if (pc > 0) {
+          pc--;
+          currentStep = 2;
+        }
+      }
+      renderStep();
+    }
+
+    // PLAY AUTO
+    function toggleAuto() {
+      if (autoInterval) {
+        clearInterval(autoInterval);
+        autoInterval = null;
+        btnAuto.textContent = "▶ Play Auto";
+        btnAuto.classList.remove("btn-primary");
+      } else {
+        btnAuto.textContent = "⏸ Pausar";
+        btnAuto.classList.add("btn-primary");
+        autoInterval = setInterval(() => {
+          advance();
+        }, 1200);
+      }
+    }
+
+    // LISTENERS DE CONTROL
+    btnNext.addEventListener("click", () => {
+      if (autoInterval) toggleAuto();
+      advance();
+    });
+
+    btnPrev.addEventListener("click", () => {
+      if (autoInterval) toggleAuto();
+      stepBack();
+    });
+
+    btnReset.addEventListener("click", () => {
+      if (autoInterval) toggleAuto();
+      resetCpu();
+      renderStep();
+    });
+
+    btnAuto.addEventListener("click", toggleAuto);
+
+    document.querySelectorAll(".btn-preset").forEach(btn => {
+      btn.addEventListener("click", () => {
+        if (autoInterval) toggleAuto();
+        loadPreset(parseInt(btn.dataset.preset));
+      });
+    });
+
+    // TECLADO: Flecha derecha avanza, izquierda retrocede, Espacio play/pausa
+    window.addEventListener("keydown", (e) => {
+      if (e.target.tagName === "INPUT") return; // permitir edición de texto sin disparar atajos
+      if (e.key === "ArrowRight") advance();
+      if (e.key === "ArrowLeft") stepBack();
+      if (e.key === " ") {
+        e.preventDefault();
+        toggleAuto();
+      }
+    });
+
+    // INICIALIZACIÓN
+    loadPreset(0);
+  </script>
+</body>
+</html>
