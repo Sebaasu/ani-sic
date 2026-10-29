@@ -235,6 +235,11 @@
       background: rgba(88, 196, 221, 0.14);
       border-color: var(--c-blue);
     }
+    .btn-mode-pill.disabled {
+      opacity: 0.35;
+      cursor: not-allowed;
+      pointer-events: none;
+    }
     .btn-mode-pill.active .pill-name {
       color: var(--c-blue);
     }
@@ -1107,6 +1112,101 @@
           </div>
         </div>
 
+        <!-- SECCIÓN 4: INSTRUCCIONES OPERATIVAS (IR₀:₂ = 111, IR₃ = 0) -->
+        <div>
+          <div class="modal-section-title">
+            <span>4. Instrucciones Operativas (Sin Memoria)</span>
+            <span style="font-size: 0.68rem; color: var(--c-yellow);">Eventos 1, 2 y 3</span>
+          </div>
+
+          <!-- 4.1 Ajustes de Acumulador y Link -->
+          <div style="font-size: 0.7rem; font-weight: 600; color: var(--text-muted); margin: 6px 0 4px;">Ajustes de AC / Link / Parada:</div>
+          <div class="inst-grid" style="grid-template-columns: repeat(6, 1fr);">
+            <button class="btn-inst-card" data-inst="CLA">
+              <span class="inst-card-code">CLA</span>
+              <span class="inst-card-desc">AC ← 0</span>
+            </button>
+            <button class="btn-inst-card" data-inst="CMA">
+              <span class="inst-card-code">CMA</span>
+              <span class="inst-card-desc">AC ← ~AC</span>
+            </button>
+            <button class="btn-inst-card" data-inst="STA">
+              <span class="inst-card-code">STA</span>
+              <span class="inst-card-desc">AC ← 777777</span>
+            </button>
+            <button class="btn-inst-card" data-inst="CLL">
+              <span class="inst-card-code">CLL</span>
+              <span class="inst-card-desc">Lf ← 0</span>
+            </button>
+            <button class="btn-inst-card" data-inst="STL">
+              <span class="inst-card-code">STL</span>
+              <span class="inst-card-desc">Lf ← 1</span>
+            </button>
+            <button class="btn-inst-card" data-inst="HLT">
+              <span class="inst-card-code">HLT</span>
+              <span class="inst-card-desc">Detener CPU</span>
+            </button>
+          </div>
+
+          <!-- 4.2 Registros Índice -->
+          <div style="font-size: 0.7rem; font-weight: 600; color: var(--text-muted); margin: 8px 0 4px;">Registros Índice (IA / IB):</div>
+          <div class="inst-grid" style="grid-template-columns: repeat(6, 1fr);">
+            <button class="btn-inst-card" data-inst="DFA">
+              <span class="inst-card-code">DFA</span>
+              <span class="inst-card-desc">AC ← IA</span>
+            </button>
+            <button class="btn-inst-card" data-inst="DFB">
+              <span class="inst-card-code">DFB</span>
+              <span class="inst-card-desc">AC ← IB</span>
+            </button>
+            <button class="btn-inst-card" data-inst="DTA">
+              <span class="inst-card-code">DTA</span>
+              <span class="inst-card-desc">IA ← AC</span>
+            </button>
+            <button class="btn-inst-card" data-inst="DTB">
+              <span class="inst-card-code">DTB</span>
+              <span class="inst-card-desc">IB ← AC</span>
+            </button>
+            <button class="btn-inst-card" data-inst="INA">
+              <span class="inst-card-code">INA</span>
+              <span class="inst-card-desc">IA ← IA + 1</span>
+            </button>
+            <button class="btn-inst-card" data-inst="INB">
+              <span class="inst-card-code">INB</span>
+              <span class="inst-card-desc">IB ← IB + 1</span>
+            </button>
+          </div>
+
+          <!-- 4.3 Omisiones y Rotaciones -->
+          <div style="font-size: 0.7rem; font-weight: 600; color: var(--text-muted); margin: 8px 0 4px;">Omisiones Condicionales y Rotaciones [Lf, AC]:</div>
+          <div class="inst-grid" style="grid-template-columns: repeat(6, 1fr);">
+            <button class="btn-inst-card" data-inst="SZL">
+              <span class="inst-card-code">SZL</span>
+              <span class="inst-card-desc">Omite si Lf=0</span>
+            </button>
+            <button class="btn-inst-card" data-inst="SKZ">
+              <span class="inst-card-code">SKZ</span>
+              <span class="inst-card-desc">Omite si AC=0</span>
+            </button>
+            <button class="btn-inst-card" data-inst="SKN">
+              <span class="inst-card-code">SKN</span>
+              <span class="inst-card-desc">Omite si AC&lt;0</span>
+            </button>
+            <button class="btn-inst-card" data-inst="SKP">
+              <span class="inst-card-code">SKP</span>
+              <span class="inst-card-desc">Omite si AC≥0</span>
+            </button>
+            <button class="btn-inst-card" data-inst="RAL">
+              <span class="inst-card-code">RAL</span>
+              <span class="inst-card-desc">Rotar Izq.</span>
+            </button>
+            <button class="btn-inst-card" data-inst="RAR">
+              <span class="inst-card-code">RAR</span>
+              <span class="inst-card-desc">Rotar Der.</span>
+            </button>
+          </div>
+        </div>
+
       </div>
 
       <div class="modal-footer">
@@ -1126,14 +1226,42 @@
     // ==========================================================================
 
     const INSTRUCTION_METADATA = {
-      LAC:    { opBits: '001', name: 'LAC', octBase: 0o040000, defaultAddr: 0o000150, desc: 'Cargar Acumulador (AC ← M)' },
-      TAD:    { opBits: '011', name: 'TAD', octBase: 0o060000, defaultAddr: 0o000150, desc: 'Sumar en Complemento a 2 (AC ← AC + M)' },
-      AND:    { opBits: '010', name: 'AND', octBase: 0o020000, defaultAddr: 0o000150, desc: 'Operación AND lógico (AC ← AC ∧ M)' },
-      DAC:    { opBits: '101', name: 'DAC', octBase: 0o120000, defaultAddr: 0o000150, desc: 'Depositar Acumulador en Memoria (M ← AC)' },
-      ISZ_NZ: { opBits: '000', name: 'ISZ', octBase: 0o000000, defaultAddr: 0o000150, desc: 'Incrementar Memoria (Resultado ≠ 0, No Salta)' },
-      ISZ_Z:  { opBits: '000', name: 'ISZ', octBase: 0o000000, defaultAddr: 0o000150, desc: 'Incrementar Memoria (Resultado = 0, Salta)' },
-      JMP:    { opBits: '110', name: 'JMP', octBase: 0o140000, defaultAddr: 0o001050, desc: 'Salto Incondicional (PC ← Dir)' },
-      JMS:    { opBits: '100', name: 'JMS', octBase: 0o100000, defaultAddr: 0o001100, desc: 'Llamada a Subrutina (Guarda Retorno y Salta)' }
+      // Instrucciones de Memoria
+      LAC:    { opBits: '001', name: 'LAC', octBase: 0o040000, defaultAddr: 0o000150, isOperative: false, desc: 'Cargar Acumulador (AC ← M)' },
+      TAD:    { opBits: '011', name: 'TAD', octBase: 0o060000, defaultAddr: 0o000150, isOperative: false, desc: 'Sumar en Complemento a 2 (AC ← AC + M)' },
+      AND:    { opBits: '010', name: 'AND', octBase: 0o020000, defaultAddr: 0o000150, isOperative: false, desc: 'Operación AND lógico (AC ← AC ∧ M)' },
+      DAC:    { opBits: '101', name: 'DAC', octBase: 0o120000, defaultAddr: 0o000150, isOperative: false, desc: 'Depositar Acumulador en Memoria (M ← AC)' },
+      ISZ_NZ: { opBits: '000', name: 'ISZ', octBase: 0o000000, defaultAddr: 0o000150, isOperative: false, desc: 'Incrementar Memoria (Resultado ≠ 0, No Salta)' },
+      ISZ_Z:  { opBits: '000', name: 'ISZ', octBase: 0o000000, defaultAddr: 0o000150, isOperative: false, desc: 'Incrementar Memoria (Resultado = 0, Salta)' },
+      JMP:    { opBits: '110', name: 'JMP', octBase: 0o140000, defaultAddr: 0o001050, isOperative: false, desc: 'Salto Incondicional (PC ← Dir)' },
+      JMS:    { opBits: '100', name: 'JMS', octBase: 0o100000, defaultAddr: 0o001100, isOperative: false, desc: 'Llamada a Subrutina (Guarda Retorno y Salta)' },
+
+      // Instrucciones Operativas (IR₀:₂ = 111, IR₃ = 0)
+      // Ajustes
+      CLA:    { opBits: '111', name: 'CLA', octBase: 0o161000, isOperative: true, desc: 'Limpiar Acumulador (AC ← 0)' },
+      CMA:    { opBits: '111', name: 'CMA', octBase: 0o160400, isOperative: true, desc: 'Complementar Acumulador (AC ← ~AC)' },
+      STA:    { opBits: '111', name: 'STA', octBase: 0o161400, isOperative: true, desc: 'Poner Acumulador en Unos (AC ← 777777)' },
+      CLL:    { opBits: '111', name: 'CLL', octBase: 0o164000, isOperative: true, desc: 'Limpiar Bandera Link (Lf ← 0)' },
+      STL:    { opBits: '111', name: 'STL', octBase: 0o162000, isOperative: true, desc: 'Activar Bandera Link (Lf ← 1)' },
+      HLT:    { opBits: '111', name: 'HLT', octBase: 0o160000, isOperative: true, desc: 'Detener Computador (Pausa / Stop)' },
+
+      // Registros Índice
+      DFA:    { opBits: '111', name: 'DFA', octBase: 0o160040, isOperative: true, desc: 'Depositar desde IA a AC (AC ← 5⊤0, IA)' },
+      DFB:    { opBits: '111', name: 'DFB', octBase: 0o160060, isOperative: true, desc: 'Depositar desde IB a AC (AC ← 5⊤0, IB)' },
+      DTA:    { opBits: '111', name: 'DTA', octBase: 0o160020, isOperative: true, desc: 'Cargar IA desde AC (IA ← AC₅:₁₇)' },
+      DTB:    { opBits: '111', name: 'DTB', octBase: 0o160010, isOperative: true, desc: 'Cargar IB desde AC (IB ← AC₅:₁₇)' },
+      INA:    { opBits: '111', name: 'INA', octBase: 0o160024, isOperative: true, desc: 'Incrementar Registro Índice IA (IA ← IA + 1)' },
+      INB:    { opBits: '111', name: 'INB', octBase: 0o160014, isOperative: true, desc: 'Incrementar Registro Índice IB (IB ← IB + 1)' },
+
+      // Omisiones Condicionales
+      SZL:    { opBits: '111', name: 'SZL', octBase: 0o160002, isOperative: true, desc: 'Omitir si Link es Cero (Skip if Lf = 0)' },
+      SKZ:    { opBits: '111', name: 'SKZ', octBase: 0o160004, isOperative: true, desc: 'Omitir si Acumulador es Cero (Skip if AC = 0)' },
+      SKN:    { opBits: '111', name: 'SKN', octBase: 0o160001, isOperative: true, desc: 'Omitir si Acumulador es Negativo (Skip if AC < 0)' },
+      SKP:    { opBits: '111', name: 'SKP', octBase: 0o160005, isOperative: true, desc: 'Omitir si Acumulador es Positivo (Skip if AC ≥ 0)' },
+
+      // Rotaciones
+      RAL:    { opBits: '111', name: 'RAL', octBase: 0o170000, isOperative: true, desc: 'Rotación a la Izquierda de 19 bits (Lf, AC ← AC, Lf)' },
+      RAR:    { opBits: '111', name: 'RAR', octBase: 0o164000, isOperative: true, desc: 'Rotación a la Derecha de 19 bits (Lf, AC ← AC₁₇, Lf, AC₀:₁₆)' }
     };
 
     const MODE_METADATA = {
@@ -1146,19 +1274,22 @@
     // GENERADOR DINÁMICO DE PASOS RTL SEGÚN EL FLUJO DE 47 PASOS
     function buildCycleSteps(instKey, modeKey) {
       const meta = INSTRUCTION_METADATA[instKey];
-      const mode = MODE_METADATA[modeKey];
+      const isOperative = meta.isOperative;
+      const mode = isOperative ? { name: 'Operativa', irBits: 'IR₀:₂=111, IR₃=0' } : MODE_METADATA[modeKey];
       const steps = [];
 
-      const baseAddr = meta.defaultAddr; // ej: 0o000150
+      const baseAddr = meta.defaultAddr || 0;
       const pcVal = 0o001000;
-      const iaVal = 0o000020; // Offset de IA = +20 octal
-      const ibVal = 0o000040; // Offset de IB = +40 octal
+      const iaVal = 0o000020; // Offset IA = 20 octal (16 dec)
+      const ibVal = 0o000040; // Offset IB = 40 octal (32 dec)
 
       // Codificación octal de IR
       let irModeOffset = 0;
-      if (modeKey === 'IND') irModeOffset = 0o020000;
-      else if (modeKey === 'IDX_A') irModeOffset = 0o000000;
-      else if (modeKey === 'IDX_B') irModeOffset = 0o010000;
+      if (!isOperative) {
+        if (modeKey === 'IND') irModeOffset = 0o020000;
+        else if (modeKey === 'IDX_A') irModeOffset = 0o000000;
+        else if (modeKey === 'IDX_B') irModeOffset = 0o010000;
+      }
 
       const instWord = (meta.octBase | irModeOffset | baseAddr) & 0o777777;
       const instWordOct = instWord.toString(8).padStart(6, '0');
@@ -1166,13 +1297,21 @@
       const iaOct = iaVal.toString(8).padStart(6, '0');
       const ibOct = ibVal.toString(8).padStart(6, '0');
 
+      // Valores iniciales de AC y Lf según la instrucción a demostrar
       let initAc = '000042';
       let initLf = '0';
       if (instKey === 'TAD') initAc = '000025';
       else if (instKey === 'AND') initAc = '007700';
       else if (instKey === 'DAC') initAc = '000555';
       else if (instKey.startsWith('ISZ')) initAc = '000000';
-      else if (instKey === 'JMP' || instKey === 'JMS') initAc = '000000';
+      else if (instKey === 'CLL') initLf = '1';
+      else if (instKey === 'STL') initLf = '0';
+      else if (instKey === 'SZL') { initLf = '0'; initAc = '000100'; }
+      else if (instKey === 'SKZ') initAc = '000000';
+      else if (instKey === 'SKN') initAc = '777770'; // Negativo (bit 0 = 1)
+      else if (instKey === 'SKP') initAc = '000020'; // Positivo (bit 0 = 0)
+      else if (instKey === 'DTA' || instKey === 'DTB') initAc = '000177';
+      else if (instKey === 'RAL' || instKey === 'RAR') { initAc = '000003'; initLf = '1'; }
 
       let curRegs = {
         pc: pcOct,
@@ -1188,7 +1327,7 @@
       function cloneRegs() { return { ...curRegs }; }
 
       // -------------------------------------------------------------
-      // FETCH: PASOS 2, 3, 4
+      // FETCH COMÚN: PASOS 2, 3, 4
       // -------------------------------------------------------------
       // Paso 2
       let prev = cloneRegs();
@@ -1215,7 +1354,7 @@
         rtl: 'MD ← BUSFN(M; DCD(MA))',
         nextStep: 4,
         condition: 'Incondicional (Memoria lista)',
-        desc: `La memoria decodifica la dirección en <strong>MA</strong> y coloca la instrucción (código de <code>${meta.name} (${mode.name})</code> = <strong>${instWordOct}₈</strong>) en el registro <strong>MD</strong>.`,
+        desc: `La memoria decodifica la dirección en <strong>MA</strong> y coloca la instrucción (código de <code>${meta.name}</code> = <strong>${instWordOct}₈</strong>) en el registro <strong>MD</strong>.`,
         phase: 'Fetch de Instrucción',
         activeMem: 'read',
         activeRegs: { write: ['node-md'] },
@@ -1226,25 +1365,685 @@
       // Paso 4
       prev = cloneRegs();
       curRegs.ir = instWordOct;
-      let nextAfterP4 = 15;
-      let condP4 = 'Directo (IR₃=0, IR₄=0) → Paso 15';
-      if (modeKey === 'DIR') {
-        nextAfterP4 = (instKey === 'JMP') ? 14 : 15;
-        condP4 = (instKey === 'JMP') ? 'Directo (IR₃=0, IR₄=0) y JMP (IR₀:₁=11) → Paso 14' : 'Directo (IR₃=0, IR₄=0) → Paso 15';
-      } else if (modeKey === 'IND') {
-        nextAfterP4 = 7;
-        condP4 = 'Indirecto: IR₃ = 1 → Paso 7';
-      } else if (modeKey === 'IDX_A' || modeKey === 'IDX_B') {
-        nextAfterP4 = 10;
-        condP4 = 'Indexado: IR₃ = 0, IR₄ activo → Paso 10';
+
+      if (isOperative) {
+        // RAMA OPERATIVA: Paso 4 -> Paso 25 (Exclusión I/O) -> Paso 26
+        steps.push({
+          step: 4,
+          name: 'Fetch: Cargar Registro de Instrucción',
+          rtl: 'IR ← MD',
+          nextStep: 25,
+          condition: 'Bifurcación: IR₀:₂ = 111 (Instrucción Operativa) → Paso 25',
+          desc: `Se carga la instrucción en <strong>IR</strong>. El decodificador detecta $IR_{0:2} = 111$, descartando accesos a memoria y bifurcando hacia las micro-operaciones operativas.`,
+          phase: 'Decodificación (Decode)',
+          activeRegs: { read: ['node-md'], write: ['node-ir'] },
+          prevRegs: prev,
+          finalRegs: cloneRegs()
+        });
+
+        // Paso 25: Exclusión I/O (IR3 = 0 -> Paso 26)
+        prev = cloneRegs();
+        steps.push({
+          step: 25,
+          name: 'Decodificación Operativa: Exclusión I/O',
+          rtl: 'NO DELAY',
+          nextStep: 26,
+          condition: 'IR₃ = 0 (No es Entrada/Salida) → Paso 26',
+          desc: 'Se verifica el bit $IR_3$: como es cero, no es una instrucción de E/S y pasa a evaluar el Primer Evento.',
+          phase: 'Decodificación Operativa',
+          prevRegs: prev,
+          finalRegs: cloneRegs()
+        });
+
+        // -------------------------------------------------------------
+        // EJECUCIÓN SEGÚN LA INSTRUCCIÓN OPERATIVA
+        // -------------------------------------------------------------
+
+        // 1. AJUSTES (CLA, CMA, STA, CLL, STL, HLT)
+        if (instKey === 'CLA' || instKey === 'CMA' || instKey === 'STA' || instKey === 'CLL' || instKey === 'STL' || instKey === 'HLT') {
+          // Paso 26: Decisión rotación Evento 1
+          prev = cloneRegs();
+          steps.push({
+            step: 26,
+            name: 'Evento 1: Decisión de Rotación',
+            rtl: 'NO DELAY',
+            nextStep: 27,
+            condition: 'IR₅ = 0 (Sin rotación en Evento 1) → Paso 27',
+            desc: 'El bit de rotación $IR_5 = 0$: no se requiere rotación previa y avanza directo al ajuste de acumulador/link.',
+            phase: 'Primer Evento',
+            prevRegs: prev,
+            finalRegs: cloneRegs()
+          });
+
+          if (instKey === 'HLT') {
+            // HLT: Paso 27 bifurca a Paso 1 (Stop)
+            prev = cloneRegs();
+            steps.push({
+              step: 27,
+              name: 'Control CPU: Detener Procesador (HLT)',
+              rtl: 'NO DELAY',
+              nextStep: 1,
+              condition: 'IR₆·IR₇·IR₈·IR₉ = 0000 (Caso HLT) → Paso 1 (HALT)',
+              desc: 'La instrucción <strong>HLT</strong> detiene el ciclo de reloj del procesador. El control vuelve al Paso 1 esperando la señal externa <code>start</code>.',
+              phase: 'Parada del Computador',
+              prevRegs: prev,
+              finalRegs: cloneRegs()
+            });
+            return steps;
+          }
+
+          // Paso 27 -> Paso 29
+          prev = cloneRegs();
+          steps.push({
+            step: 27,
+            name: 'Evento 1: Habilitar Ajuste de Registros',
+            rtl: 'NO DELAY',
+            nextStep: 29,
+            condition: 'Ajuste de registro activo → Paso 29',
+            desc: 'Se habilitan las compuertas de transferencia directa hacia el acumulador o la bandera Link.',
+            phase: 'Primer Evento',
+            prevRegs: prev,
+            finalRegs: cloneRegs()
+          });
+
+          // Paso 29: Ejecución física del ajuste
+          prev = cloneRegs();
+          let rtlP29 = '';
+          let descP29 = '';
+          let activeR = { write: ['node-ac'] };
+
+          if (instKey === 'CLA') {
+            curRegs.ac = '000000';
+            rtlP29 = 'AC ← 18⊤0';
+            descP29 = 'Se borran todos los bits del acumulador: <strong>AC ← 000000₈</strong>.';
+          } else if (instKey === 'CMA') {
+            curRegs.ac = '777735';
+            rtlP29 = 'AC ← ~AC';
+            descP29 = 'Se invierten todos los bits del acumulador: <strong>AC ← NOT(AC)</strong>.';
+          } else if (instKey === 'STA') {
+            curRegs.ac = '777777';
+            rtlP29 = 'AC ← 18⊤1';
+            descP29 = 'Se colocan todos los bits de <strong>AC</strong> en 1: <strong>777777₈</strong> (-1 en complemento a 2).';
+          } else if (instKey === 'CLL') {
+            curRegs.lf = '0';
+            rtlP29 = 'Lf ← 0';
+            descP29 = 'Se limpia la bandera de acarreo Link: <strong>Lf ← 0</strong>.';
+            activeR = { write: ['node-lf'] };
+          } else if (instKey === 'STL') {
+            curRegs.lf = '1';
+            rtlP29 = 'Lf ← 1';
+            descP29 = 'Se activa la bandera de acarreo Link: <strong>Lf ← 1</strong>.';
+            activeR = { write: ['node-lf'] };
+          }
+
+          steps.push({
+            step: 29,
+            name: `Evento 1: Ajuste de ${meta.name}`,
+            rtl: rtlP29,
+            nextStep: 33,
+            condition: 'Incondicional → Pasa al Segundo Evento (Paso 33)',
+            desc: descP29,
+            phase: 'Primer Evento',
+            activeRegs: activeR,
+            activeAlu: true,
+            prevRegs: prev,
+            finalRegs: cloneRegs()
+          });
+
+          // Paso 33 -> Paso 43 -> Paso 24 (Sin segundo ni tercer evento)
+          prev = cloneRegs();
+          steps.push({
+            step: 33,
+            name: 'Segundo Evento: Sin Operación de Índice',
+            rtl: 'NO DELAY',
+            nextStep: 43,
+            condition: 'IR₁₀ = 0 y sin índice → Paso 43',
+            desc: 'No se requieren operaciones en el segundo evento; se transfiere el control directamente al tercer evento.',
+            phase: 'Segundo Evento',
+            prevRegs: prev,
+            finalRegs: cloneRegs()
+          });
+
+          prev = cloneRegs();
+          steps.push({
+            step: 43,
+            name: 'Tercer Evento: Sin Omisión Condicional',
+            rtl: 'NO DELAY',
+            nextStep: 24,
+            condition: 'IR₁₄ = 0 y sin omisión → Paso 24',
+            desc: 'No se especificaron omisiones condicionales; pasa al cierre de instrucción en el Paso 24.',
+            phase: 'Tercer Evento',
+            prevRegs: prev,
+            finalRegs: cloneRegs()
+          });
+
+        } else if (instKey === 'DFA' || instKey === 'DFB' || instKey === 'DTA' || instKey === 'DTB' || instKey === 'INA' || instKey === 'INB' || instKey === 'SZL') {
+          // 2. SEGUNDO EVENTO: ÍNDICES Y SZL
+          // Pasos 26 -> 33
+          prev = cloneRegs();
+          steps.push({
+            step: 26,
+            name: 'Primer Evento: Sin Ajustes',
+            rtl: 'NO DELAY',
+            nextStep: 33,
+            condition: 'IR₅ = 0 → Pasa al Segundo Evento',
+            desc: 'No hay micro-operaciones en el primer evento; se evalúa el Segundo Evento.',
+            phase: 'Primer Evento',
+            prevRegs: prev,
+            finalRegs: cloneRegs()
+          });
+
+          // Paso 33 -> Paso 34
+          prev = cloneRegs();
+          steps.push({
+            step: 33,
+            name: 'Segundo Evento: Decisión de Rotación',
+            rtl: 'NO DELAY',
+            nextStep: 34,
+            condition: 'IR₁₀ = 0 (Sin rotación previa) → Paso 34',
+            desc: 'Se evalúa el bit $IR_{10}$: sin rotación previa en el segundo evento.',
+            phase: 'Segundo Evento',
+            prevRegs: prev,
+            finalRegs: cloneRegs()
+          });
+
+          if (instKey === 'SZL') {
+            // SZL: Pasos 34 -> 35 -> 36 (si Lf=0 salta)
+            prev = cloneRegs();
+            steps.push({
+              step: 34,
+              name: 'Segundo Evento: Habilitar Detección SZL',
+              rtl: 'NO DELAY',
+              nextStep: 35,
+              condition: 'IR₁₁·IR₁₂ = 00 (Opción SZL) → Paso 35',
+              desc: 'Se decodifican los bits de selección hacia la prueba de la bandera Link.',
+              phase: 'Segundo Evento',
+              prevRegs: prev,
+              finalRegs: cloneRegs()
+            });
+
+            prev = cloneRegs();
+            steps.push({
+              step: 35,
+              name: 'Segundo Evento: Evaluación de Lf = 0 (SZL)',
+              rtl: 'NO DELAY',
+              nextStep: 36,
+              condition: 'Lf = 0 (Condición Cumplida) → Salta a Paso 36',
+              desc: 'La bandera Link es cero (<strong>Lf = 0</strong>): se activa la omisión de instrucción saltando al Paso 36.',
+              phase: 'Evaluación de Condición',
+              activeRegs: { read: ['node-lf'] },
+              prevRegs: prev,
+              finalRegs: cloneRegs()
+            });
+
+            // Paso 36: Primer incremento del PC
+            prev = cloneRegs();
+            curRegs.pc = '001001';
+            steps.push({
+              step: 36,
+              name: 'Omisión: Incrementar PC por Condición',
+              rtl: 'PC ← INC(PC)',
+              nextStep: 24,
+              condition: 'Incondicional hacia paso de cierre 24',
+              desc: 'Como la condición se cumplió, el <strong>PC</strong> realiza el primer incremento de salto pasando a <strong>001001</strong>.',
+              phase: 'Omisión de Instrucción',
+              activeRegs: { read: ['node-pc'], write: ['node-pc'] },
+              prevRegs: prev,
+              finalRegs: cloneRegs()
+            });
+
+            // Paso 24: Segundo incremento -> 001002 (omisión efectiva)
+            prev = cloneRegs();
+            curRegs.pc = '001002';
+            steps.push({
+              step: 24,
+              name: 'Next Instruction: Salto Completado (PC+2)',
+              rtl: 'PC ← INC(PC)',
+              nextStep: 2,
+              condition: 'Incondicional → Reinicia en Paso 2',
+              desc: 'El ciclo concluye con el incremento estándar del Paso 24: <strong>PC ← 001002</strong>, logrando saltar la siguiente instrucción.',
+              phase: 'Conclusión / Fetch Siguiente',
+              activeRegs: { read: ['node-pc'], write: ['node-pc'] },
+              prevRegs: prev,
+              finalRegs: cloneRegs()
+            });
+
+            return steps;
+
+          } else if (instKey === 'DFA') {
+            // DFA: Paso 34 -> 37 (AC <- 5^0, IA)
+            prev = cloneRegs();
+            steps.push({
+              step: 34,
+              name: 'Segundo Evento: Decodificar DFA',
+              rtl: 'NO DELAY',
+              nextStep: 37,
+              condition: 'IR₁₁·IR₁₂ = 01 (Transferencia de índice a AC) → Paso 37',
+              desc: 'Se habilita la transferencia del registro índice IA hacia el acumulador.',
+              phase: 'Segundo Evento',
+              prevRegs: prev,
+              finalRegs: cloneRegs()
+            });
+
+            prev = cloneRegs();
+            curRegs.ac = '000020';
+            steps.push({
+              step: 37,
+              name: 'Execute: Depositar IA en AC (DFA)',
+              rtl: 'AC ← 5⊤0, IA',
+              nextStep: 43,
+              condition: 'Incondicional → Pasa al Tercer Evento',
+              desc: 'El valor de <strong>IA</strong> (000020₈) se transfiere por el bus hacia <strong>AC</strong> alineado con ceros a la izquierda.',
+              phase: 'Transferencia de Índice',
+              activeRegs: { read: ['node-ia'], write: ['node-ac'] },
+              prevRegs: prev,
+              finalRegs: cloneRegs()
+            });
+
+          } else if (instKey === 'DFB') {
+            // DFB: Paso 34 -> 37 (AC <- 5^0, IB)
+            prev = cloneRegs();
+            steps.push({
+              step: 34,
+              name: 'Segundo Evento: Decodificar DFB',
+              rtl: 'NO DELAY',
+              nextStep: 37,
+              condition: 'IR₁₁·IR₁₂ = 01 (Transferencia de índice a AC) → Paso 37',
+              desc: 'Se habilita la transferencia del registro índice IB hacia el acumulador.',
+              phase: 'Segundo Evento',
+              prevRegs: prev,
+              finalRegs: cloneRegs()
+            });
+
+            prev = cloneRegs();
+            curRegs.ac = '000040';
+            steps.push({
+              step: 37,
+              name: 'Execute: Depositar IB en AC (DFB)',
+              rtl: 'AC ← 5⊤0, IB',
+              nextStep: 43,
+              condition: 'Incondicional → Pasa al Tercer Evento',
+              desc: 'El valor de <strong>IB</strong> (000040₈) se transfiere por el bus hacia <strong>AC</strong>.',
+              phase: 'Transferencia de Índice',
+              activeRegs: { read: ['node-ib'], write: ['node-ac'] },
+              prevRegs: prev,
+              finalRegs: cloneRegs()
+            });
+
+          } else if (instKey === 'DTA') {
+            // DTA: Paso 34 -> 38 (IA <- AC_5:17)
+            prev = cloneRegs();
+            steps.push({
+              step: 34,
+              name: 'Segundo Evento: Decodificar DTA',
+              rtl: 'NO DELAY',
+              nextStep: 38,
+              condition: 'IR₁₁·IR₁₂ = 10 (Operación sobre IA) → Paso 38',
+              desc: 'Se habilita la carga del registro índice IA desde los 13 bits bajos de AC.',
+              phase: 'Segundo Evento',
+              prevRegs: prev,
+              finalRegs: cloneRegs()
+            });
+
+            prev = cloneRegs();
+            curRegs.ia = '000177';
+            steps.push({
+              step: 38,
+              name: 'Execute: Cargar IA desde AC (DTA)',
+              rtl: 'IA ← AC₅:₁₇',
+              nextStep: 43,
+              condition: 'Incondicional → Pasa al Tercer Evento',
+              desc: 'Los 13 bits de menor peso de <strong>AC</strong> se guardan en el registro índice <strong>IA = 000177₈</strong>.',
+              phase: 'Carga de Índice',
+              activeRegs: { read: ['node-ac'], write: ['node-ia'] },
+              prevRegs: prev,
+              finalRegs: cloneRegs()
+            });
+
+          } else if (instKey === 'DTB') {
+            // DTB: Paso 34 -> 39 (IB <- AC_5:17)
+            prev = cloneRegs();
+            steps.push({
+              step: 34,
+              name: 'Segundo Evento: Decodificar DTB',
+              rtl: 'NO DELAY',
+              nextStep: 39,
+              condition: 'IR₁₁·IR₁₂ = 11 (Operación sobre IB) → Paso 39',
+              desc: 'Se habilita la carga del registro índice IB desde los 13 bits bajos de AC.',
+              phase: 'Segundo Evento',
+              prevRegs: prev,
+              finalRegs: cloneRegs()
+            });
+
+            prev = cloneRegs();
+            curRegs.ib = '000177';
+            steps.push({
+              step: 39,
+              name: 'Execute: Cargar IB desde AC (DTB)',
+              rtl: 'IB ← AC₅:₁₇',
+              nextStep: 43,
+              condition: 'Incondicional → Pasa al Tercer Evento',
+              desc: 'Los 13 bits de menor peso de <strong>AC</strong> se guardan en el registro índice <strong>IB = 000177₈</strong>.',
+              phase: 'Carga de Índice',
+              activeRegs: { read: ['node-ac'], write: ['node-ib'] },
+              prevRegs: prev,
+              finalRegs: cloneRegs()
+            });
+
+          } else if (instKey === 'INA') {
+            // INA: Paso 34 -> 38 (IA <- IA + 1)
+            prev = cloneRegs();
+            steps.push({
+              step: 34,
+              name: 'Segundo Evento: Decodificar INA',
+              rtl: 'NO DELAY',
+              nextStep: 38,
+              condition: 'IR₁₁·IR₁₂ = 10 e IR₁₃ = 1 (Incremento IA) → Paso 38',
+              desc: 'Se habilita la suma de +1 sobre el registro índice IA.',
+              phase: 'Segundo Evento',
+              prevRegs: prev,
+              finalRegs: cloneRegs()
+            });
+
+            prev = cloneRegs();
+            curRegs.ia = '000021';
+            steps.push({
+              step: 38,
+              name: 'Execute: Incrementar IA (INA)',
+              rtl: 'IA ← INC(IA)',
+              nextStep: 43,
+              condition: 'Incondicional → Pasa al Tercer Evento',
+              desc: 'El registro índice <strong>IA</strong> se incrementa en una unidad: 000020₈ + 1 = <strong>000021₈</strong>.',
+              phase: 'Incremento de Índice',
+              activeRegs: { read: ['node-ia'], write: ['node-ia'] },
+              activeAlu: true,
+              prevRegs: prev,
+              finalRegs: cloneRegs()
+            });
+
+          } else if (instKey === 'INB') {
+            // INB: Paso 34 -> 39 (IB <- IB + 1)
+            prev = cloneRegs();
+            steps.push({
+              step: 34,
+              name: 'Segundo Evento: Decodificar INB',
+              rtl: 'NO DELAY',
+              nextStep: 39,
+              condition: 'IR₁₁·IR₁₂ = 11 e IR₁₃ = 1 (Incremento IB) → Paso 39',
+              desc: 'Se habilita la suma de +1 sobre el registro índice IB.',
+              phase: 'Segundo Evento',
+              prevRegs: prev,
+              finalRegs: cloneRegs()
+            });
+
+            prev = cloneRegs();
+            curRegs.ib = '000041';
+            steps.push({
+              step: 39,
+              name: 'Execute: Incrementar IB (INB)',
+              rtl: 'IB ← INC(IB)',
+              nextStep: 43,
+              condition: 'Incondicional → Pasa al Tercer Evento',
+              desc: 'El registro índice <strong>IB</strong> se incrementa en una unidad: 000040₈ + 1 = <strong>000041₈</strong>.',
+              phase: 'Incremento de Índice',
+              activeRegs: { read: ['node-ib'], write: ['node-ib'] },
+              activeAlu: true,
+              prevRegs: prev,
+              finalRegs: cloneRegs()
+            });
+          }
+
+          // Paso 43 común hacia Paso 24 para operaciones de índice
+          prev = cloneRegs();
+          steps.push({
+            step: 43,
+            name: 'Tercer Evento: Sin Omisión Condicional',
+            rtl: 'NO DELAY',
+            nextStep: 24,
+            condition: 'IR₁₄ = 0 → Paso 24',
+            desc: 'Concluyen los eventos de registro y pasa al incremento de fin de ciclo en el Paso 24.',
+            phase: 'Tercer Evento',
+            prevRegs: prev,
+            finalRegs: cloneRegs()
+          });
+
+        } else if (instKey === 'SKZ' || instKey === 'SKN' || instKey === 'SKP') {
+          // 3. TERCER EVENTO: OMISIONES POR AC (SKZ, SKN, SKP)
+          // Paso 26 -> Paso 33 -> Paso 43
+          prev = cloneRegs();
+          steps.push({
+            step: 26,
+            name: 'Primer Evento: Sin Ajustes',
+            rtl: 'NO DELAY',
+            nextStep: 33,
+            condition: 'IR₅ = 0 → Pasa al Segundo Evento',
+            desc: 'Sin micro-operaciones en el primer evento.',
+            phase: 'Primer Evento',
+            prevRegs: prev,
+            finalRegs: cloneRegs()
+          });
+
+          prev = cloneRegs();
+          steps.push({
+            step: 33,
+            name: 'Segundo Evento: Sin Índices',
+            rtl: 'NO DELAY',
+            nextStep: 43,
+            condition: 'IR₁₀ = 0 y sin índice → Pasa al Tercer Evento',
+            desc: 'Sin operaciones de índice en el segundo evento; avanza al Tercer Evento.',
+            phase: 'Segundo Evento',
+            prevRegs: prev,
+            finalRegs: cloneRegs()
+          });
+
+          // Paso 43 -> Paso 44 (Evaluación de f(AC))
+          prev = cloneRegs();
+          steps.push({
+            step: 43,
+            name: 'Tercer Evento: Habilitar Omisión Condicional',
+            rtl: 'NO DELAY',
+            nextStep: 44,
+            condition: 'IR₁₄ = 0 (Sin rotación previa) → Paso 44',
+            desc: 'Se transfiere el control a la red combinacional de evaluación de condición sobre AC.',
+            phase: 'Tercer Evento',
+            prevRegs: prev,
+            finalRegs: cloneRegs()
+          });
+
+          let condName = '';
+          if (instKey === 'SKZ') condName = 'AC = 000000 (Condición Cumplida: SKZ)';
+          else if (instKey === 'SKN') condName = 'AC < 0 (AC₀ = 1, Negativo: SKN)';
+          else if (instKey === 'SKP') condName = 'AC ≥ 0 (AC₀ = 0, Positivo: SKP)';
+
+          // Paso 44: Salta a Paso 36
+          prev = cloneRegs();
+          steps.push({
+            step: 44,
+            name: `Tercer Evento: Evaluación ${meta.name}`,
+            rtl: 'NO DELAY',
+            nextStep: 36,
+            condition: `${condName} → Salta a Paso 36`,
+            desc: `Se cumple la condición de omisión <strong>${meta.name}</strong> sobre el acumulador (<strong>AC = ${curRegs.ac}₈</strong>). La máquina bifurca al Paso 36 para ejecutar el salto.`,
+            phase: 'Evaluación de Condición',
+            activeRegs: { read: ['node-ac'] },
+            prevRegs: prev,
+            finalRegs: cloneRegs()
+          });
+
+          // Paso 36: Primer incremento de PC
+          prev = cloneRegs();
+          curRegs.pc = '001001';
+          steps.push({
+            step: 36,
+            name: 'Omisión: Incrementar PC por Condición',
+            rtl: 'PC ← INC(PC)',
+            nextStep: 24,
+            condition: 'Incondicional hacia paso de cierre 24',
+            desc: 'Como la condición fue verdadera, el <strong>PC</strong> se incrementa de 001000 a <strong>001001</strong>.',
+            phase: 'Omisión de Instrucción',
+            activeRegs: { read: ['node-pc'], write: ['node-pc'] },
+            prevRegs: prev,
+            finalRegs: cloneRegs()
+          });
+
+          // Paso 24: Segundo incremento -> 001002 (omisión efectiva)
+          prev = cloneRegs();
+          curRegs.pc = '001002';
+          steps.push({
+            step: 24,
+            name: 'Next Instruction: Salto Completado (PC+2)',
+            rtl: 'PC ← INC(PC)',
+            nextStep: 2,
+            condition: 'Incondicional → Reinicia en Paso 2',
+            desc: 'El ciclo concluye con el segundo incremento en el Paso 24: <strong>PC ← 001002</strong>, logrando omitir limpiamente la siguiente instrucción.',
+            phase: 'Conclusión / Fetch Siguiente',
+            activeRegs: { read: ['node-pc'], write: ['node-pc'] },
+            prevRegs: prev,
+            finalRegs: cloneRegs()
+          });
+
+          return steps;
+
+        } else if (instKey === 'RAL' || instKey === 'RAR') {
+          // 4. ROTACIONES DE 19 BITS [Lf, AC]
+          // Paso 26: Decisión rotación -> Paso 30 -> 31 o 32
+          prev = cloneRegs();
+          steps.push({
+            step: 26,
+            name: 'Evento 1: Decisión de Rotación',
+            rtl: 'NO DELAY',
+            nextStep: 30,
+            condition: 'IR₅ = 1 (Habilitar rotación de 19 bits) → Paso 30',
+            desc: 'El bit $IR_5 = 1$ indica que se debe realizar una rotación del registro de 19 bits compuesto por <strong>[Lf, AC]</strong>.',
+            phase: 'Rotación',
+            prevRegs: prev,
+            finalRegs: cloneRegs()
+          });
+
+          if (instKey === 'RAL') {
+            // RAL: Paso 30 -> 31 (Lf, AC <- AC, Lf)
+            prev = cloneRegs();
+            steps.push({
+              step: 30,
+              name: 'Rotación: Selección Sentido Izquierda (RAL)',
+              rtl: 'NO DELAY',
+              nextStep: 31,
+              condition: 'IR₄ = 0 (Rotación hacia la Izquierda) → Paso 31',
+              desc: 'Se configura el sentido hacia la izquierda: el bit más significativo pasa a Link y Link entra por la derecha.',
+              phase: 'Rotación',
+              prevRegs: prev,
+              finalRegs: cloneRegs()
+            });
+
+            // Paso 31: Lf, AC <- AC, Lf
+            prev = cloneRegs();
+            // AC inicial 000003_8 (000...000011_2) con Lf=1 -> Desplaza a la izq: AC=000007_8, Lf=0
+            curRegs.ac = '000007';
+            curRegs.lf = '0';
+            steps.push({
+              step: 31,
+              name: 'Execute: Rotar [Lf, AC] a la Izquierda (RAL)',
+              rtl: 'Lf, AC ← AC, Lf',
+              nextStep: 33,
+              condition: 'Incondicional → Pasa al Segundo Evento',
+              desc: 'Rotación a la izquierda: el antiguo valor de <strong>Lf (1)</strong> ingresa como el bit de menor peso de <strong>AC</strong>, y el bit saliente de AC pasa a <strong>Lf</strong>. Nuevo <strong>AC = 000007₈</strong>.',
+              phase: 'Rotación de Registro',
+              activeRegs: { read: ['node-ac', 'node-lf'], write: ['node-ac', 'node-lf'] },
+              activeAlu: true,
+              prevRegs: prev,
+              finalRegs: cloneRegs()
+            });
+
+          } else if (instKey === 'RAR') {
+            // RAR: Paso 30 -> 32 (Lf, AC <- AC_17, Lf, AC_0:16)
+            prev = cloneRegs();
+            steps.push({
+              step: 30,
+              name: 'Rotación: Selección Sentido Derecha (RAR)',
+              rtl: 'NO DELAY',
+              nextStep: 32,
+              condition: 'IR₄ = 1 (Rotación hacia la Derecha) → Paso 32',
+              desc: 'Se configura el sentido hacia la derecha: el bit de Link entra por la izquierda de AC y el bit 17 pasa a Link.',
+              phase: 'Rotación',
+              prevRegs: prev,
+              finalRegs: cloneRegs()
+            });
+
+            // Paso 32: Lf, AC <- AC_17, Lf, AC_0:16
+            prev = cloneRegs();
+            curRegs.ac = '400001';
+            curRegs.lf = '1';
+            steps.push({
+              step: 32,
+              name: 'Execute: Rotar [Lf, AC] a la Derecha (RAR)',
+              rtl: 'Lf, AC ← AC₁₇, Lf, AC₀:₁₆',
+              nextStep: 33,
+              condition: 'Incondicional → Pasa al Segundo Evento',
+              desc: 'Rotación a la derecha: el valor de <strong>Lf (1)</strong> se inserta en el bit más significativo de <strong>AC</strong> (dando <strong>400001₈</strong>) y el bit saliente pasa a Link.',
+              phase: 'Rotación de Registro',
+              activeRegs: { read: ['node-ac', 'node-lf'], write: ['node-ac', 'node-lf'] },
+              activeAlu: true,
+              prevRegs: prev,
+              finalRegs: cloneRegs()
+            });
+          }
+
+          // Cierre común para rotaciones
+          prev = cloneRegs();
+          steps.push({
+            step: 33,
+            name: 'Segundo Evento: Sin Operaciones',
+            rtl: 'NO DELAY',
+            nextStep: 43,
+            condition: 'IR₁₀ = 0 → Paso 43',
+            desc: 'Pasa directamente hacia el tercer evento.',
+            phase: 'Segundo Evento',
+            prevRegs: prev,
+            finalRegs: cloneRegs()
+          });
+
+          prev = cloneRegs();
+          steps.push({
+            step: 43,
+            name: 'Tercer Evento: Sin Operaciones',
+            rtl: 'NO DELAY',
+            nextStep: 24,
+            condition: 'IR₁₄ = 0 → Paso 24',
+            desc: 'Pasa al incremento final del PC en el Paso 24.',
+            phase: 'Tercer Evento',
+            prevRegs: prev,
+            finalRegs: cloneRegs()
+          });
+        }
+
+        // Paso 24 común para instrucciones operativas sin omisión
+        prev = cloneRegs();
+        curRegs.pc = '001001';
+        steps.push({
+          step: 24,
+          name: 'Next Instruction: Incrementar PC',
+          rtl: 'PC ← INC(PC)',
+          nextStep: 2,
+          condition: 'Incondicional → Reinicia en Paso 2',
+          desc: 'El <strong>PC</strong> se incrementa a <strong>001001</strong> y el procesador vuelve al Paso 2 para buscar la siguiente instrucción.',
+          phase: 'Conclusión / Fetch Siguiente',
+          activeRegs: { read: ['node-pc'], write: ['node-pc'] },
+          prevRegs: prev,
+          finalRegs: cloneRegs()
+        });
+
+        return steps;
       }
 
+      // -------------------------------------------------------------
+      // RAMA INSTRUCCIONES DE MEMORIA (LAC, TAD, AND, DAC, ISZ, JMP, JMS)
+      // -------------------------------------------------------------
       steps.push({
         step: 4,
         name: 'Fetch: Cargar Registro de Instrucción',
         rtl: 'IR ← MD',
-        nextStep: nextAfterP4,
-        condition: condP4,
+        nextStep: (modeKey === 'DIR') ? ((instKey === 'JMP') ? 14 : 15) : ((modeKey === 'IND') ? 7 : 10),
+        condition: (modeKey === 'DIR') ? ((instKey === 'JMP') ? 'Directo (IR₃=0, IR₄=0) y JMP (IR₀:₁=11) → Paso 14' : 'Directo (IR₃=0, IR₄=0) → Paso 15') : ((modeKey === 'IND') ? 'Indirecto: IR₃ = 1 → Paso 7' : 'Indexado: IR₃ = 0, IR₄ activo → Paso 10'),
         desc: `Se carga la palabra de instrucción en <strong>IR</strong>. El decodificador identifica el código de operación <code>${meta.opBits}</code> (${meta.name}) y el modo <strong>${mode.name}</strong>.`,
         phase: 'Decodificación (Decode)',
         activeRegs: { read: ['node-md'], write: ['node-ir'] },
@@ -1252,18 +2051,13 @@
         finalRegs: cloneRegs()
       });
 
-      // -------------------------------------------------------------
-      // FASE DE DIRECCIONAMIENTO SEGÚN EL MODO
-      // -------------------------------------------------------------
       let effectiveAddr = baseAddr;
 
       if (modeKey === 'IND') {
-        // INDIRECTO: Pasos 7, 8, 9
         const ptrAddrOct = (baseAddr & 0o777777).toString(8).padStart(6, '0');
-        effectiveAddr = 0o000240; // Celda destino apuntada por el puntero
+        effectiveAddr = 0o000240;
         const targetAddrOct = effectiveAddr.toString(8).padStart(6, '0');
 
-        // Paso 7
         prev = cloneRegs();
         curRegs.ma = ptrAddrOct;
         steps.push({
@@ -1279,7 +2073,6 @@
           finalRegs: cloneRegs()
         });
 
-        // Paso 8
         prev = cloneRegs();
         curRegs.md = targetAddrOct;
         steps.push({
@@ -1296,7 +2089,6 @@
           finalRegs: cloneRegs()
         });
 
-        // Paso 9
         prev = cloneRegs();
         const updatedIr = ((instWord & 0o760000) | (effectiveAddr & 0o017777)) & 0o777777;
         curRegs.ir = updatedIr.toString(8).padStart(6, '0');
@@ -1315,11 +2107,9 @@
         });
 
       } else if (modeKey === 'IDX_A') {
-        // INDEXADO IA: Pasos 10 y 11
         effectiveAddr = (baseAddr + iaVal) & 0o017777;
         const targetAddrOct = effectiveAddr.toString(8).padStart(6, '0');
 
-        // Paso 10
         prev = cloneRegs();
         steps.push({
           step: 10,
@@ -1333,7 +2123,6 @@
           finalRegs: cloneRegs()
         });
 
-        // Paso 11
         prev = cloneRegs();
         const updatedIr = ((instWord & 0o760000) | (effectiveAddr & 0o017777)) & 0o777777;
         curRegs.ir = updatedIr.toString(8).padStart(6, '0');
@@ -1353,11 +2142,9 @@
         });
 
       } else if (modeKey === 'IDX_B') {
-        // INDEXADO IB: Pasos 10 y 12
         effectiveAddr = (baseAddr + ibVal) & 0o017777;
         const targetAddrOct = effectiveAddr.toString(8).padStart(6, '0');
 
-        // Paso 10
         prev = cloneRegs();
         steps.push({
           step: 10,
@@ -1371,7 +2158,6 @@
           finalRegs: cloneRegs()
         });
 
-        // Paso 12
         prev = cloneRegs();
         const updatedIr = ((instWord & 0o760000) | (effectiveAddr & 0o017777)) & 0o777777;
         curRegs.ir = updatedIr.toString(8).padStart(6, '0');
@@ -1391,13 +2177,9 @@
         });
       }
 
-      // -------------------------------------------------------------
-      // EJECUCIÓN ESPECÍFICA DE LA INSTRUCCIÓN
-      // -------------------------------------------------------------
       const effOct = effectiveAddr.toString(8).padStart(6, '0');
 
       if (instKey === 'JMP') {
-        // JMP: Paso 14
         prev = cloneRegs();
         curRegs.pc = effOct;
         steps.push({
@@ -1415,7 +2197,6 @@
         return steps;
       }
 
-      // Para las demás instrucciones: Paso 15 (MA <- IR_5:17)
       prev = cloneRegs();
       curRegs.ma = effOct;
       const nextAfterP15 = (instKey === 'DAC' || instKey === 'JMS') ? 21 : 16;
@@ -1434,7 +2215,6 @@
         finalRegs: cloneRegs()
       });
 
-      // Instrucciones de Lectura (LAC, TAD, AND, ISZ): Paso 16
       if (instKey === 'LAC' || instKey === 'TAD' || instKey === 'AND' || instKey.startsWith('ISZ')) {
         prev = cloneRegs();
         let dataVal = '000777';
@@ -1908,11 +2688,18 @@
       currentStage = 1;
 
       const instMeta = INSTRUCTION_METADATA[inst];
-      const modeMeta = MODE_METADATA[mode];
+      const isOperative = instMeta.isOperative;
 
-      headerInstLabel.textContent = `${instMeta.name} ${instMeta.defaultAddr.toString(8).padStart(3, '0')}`;
-      headerModeBadge.textContent = modeMeta.name;
-      lblInstCode.textContent = `${instMeta.name} (${modeMeta.name})`;
+      if (isOperative) {
+        headerInstLabel.textContent = instMeta.name;
+        headerModeBadge.textContent = 'Operativa';
+        lblInstCode.textContent = `${instMeta.name} (Operativa)`;
+      } else {
+        const modeMeta = MODE_METADATA[mode];
+        headerInstLabel.textContent = `${instMeta.name} ${instMeta.defaultAddr.toString(8).padStart(3, '0')}`;
+        headerModeBadge.textContent = modeMeta.name;
+        lblInstCode.textContent = `${instMeta.name} (${modeMeta.name})`;
+      }
 
       buildSequenceTracker();
       renderStage();
@@ -1958,15 +2745,24 @@
     }
 
     function updateModalSelectionsUI() {
+      const isOperative = INSTRUCTION_METADATA[selectedModalInst] && INSTRUCTION_METADATA[selectedModalInst].isOperative;
+
       document.querySelectorAll('.btn-mode-pill').forEach(btn => {
-        btn.classList.toggle('active', btn.getAttribute('data-mode') === selectedModalMode);
+        btn.classList.toggle('disabled', isOperative);
+        btn.classList.toggle('active', !isOperative && btn.getAttribute('data-mode') === selectedModalMode);
       });
+
       document.querySelectorAll('.btn-inst-card').forEach(btn => {
         btn.classList.toggle('active', btn.getAttribute('data-inst') === selectedModalInst);
       });
-      const modeInfo = MODE_METADATA[selectedModalMode];
-      if (modeInfo && modalModeInfo) {
-        modalModeInfo.textContent = modeInfo.irBits;
+
+      if (modalModeInfo) {
+        if (isOperative) {
+          modalModeInfo.textContent = 'Sin Memoria de Datos (IR₀:₂=111, IR₃=0)';
+        } else {
+          const modeInfo = MODE_METADATA[selectedModalMode];
+          modalModeInfo.textContent = modeInfo ? modeInfo.irBits : '';
+        }
       }
     }
 
